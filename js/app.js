@@ -744,6 +744,17 @@
 
   window.addEventListener("hashchange", route);
 
+  // Keep the mobile drawer state sane across viewport changes and keyboard use.
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 900) document.body.classList.remove("nav-open");
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    document.body.classList.remove("nav-open");
+    const openModal = document.querySelector(".modal-backdrop");
+    if (openModal) openModal.remove();
+  });
+
   /* ----------------------------- PWA install ----------------------------- */
   let deferredPrompt = null;
   window.addEventListener("beforeinstallprompt", (e) => {
