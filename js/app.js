@@ -47,7 +47,7 @@
 
   const NAV = [
     { key: "dashboard", label: "Dashboard", icon: "dashboard", route: "#/" },
-    { key: "examenes", label: "My Exams", icon: "exams", route: "#/examenes" },
+    { key: "examenes", label: "My Modules", icon: "exams", route: "#/examenes" },
     { key: "recursos", label: "Study Resources", icon: "resources", route: "#/recursos" },
     { key: "resultados", label: "Results & Progress", icon: "progress", route: "#/resultados" },
     { key: "ajustes", label: "Settings", icon: "settings", route: "#/ajustes" },
@@ -100,10 +100,10 @@
     <header class="topbar">
       <div class="search">
         ${I.search}
-        <input type="text" placeholder="Search exams or resources…" aria-label="Search">
+        <input type="text" placeholder="Search modules or resources…" aria-label="Search">
       </div>
       <div class="topbar-right">
-        <button class="icon-btn" aria-label="Notifications" data-toast="Sin notificaciones nuevas">${I.bell}<span class="dot"></span></button>
+        <button class="icon-btn" aria-label="Notifications" data-toast="No new notifications">${I.bell}<span class="dot"></span></button>
         <div class="user">
           <div class="u-name"><b>${esc(s.name)}</b><span>${esc(s.role)}</span></div>
           <img class="avatar" src="${s.avatar}" alt="${esc(s.name)}">
@@ -136,10 +136,10 @@
     const html = `
       <section class="hero">
         <div>
-          <h1>Hola, ${esc(s.name.split(" ")[0])}!</h1>
-          <p>Ready to crush your IELTS goal? You're on a ${s.streak}-day streak.</p>
+          <h1>Welcome, ${esc(s.name.split(" ")[0])}!</h1>
+          <p>Ready to reach ICAO Level 6? You're on a ${s.streak}-day streak.</p>
         </div>
-        <a class="btn btn-gold" href="#/examen/${featured.id}">Start Next Lesson</a>
+        <a class="btn btn-gold" href="#/examen/${featured.id}">Start Next Module</a>
         <img class="eagle-watermark" src="${LOGO}" alt="">
       </section>
 
@@ -158,13 +158,13 @@
         <div class="stat dark">
           <div class="stat-top"><span class="stat-label">Average Score</span><span class="stat-emblem ghost">${I.medal}</span></div>
           <div class="stat-value">${s.averageScore} <small>%</small></div>
-          <div class="mini-tags"><span class="mini-tag">Listening: ${s.listening}%</span><span class="mini-tag">Reading: ${s.reading}%</span></div>
+          <div class="mini-tags"><span class="mini-tag">Comprehension: ${s.comprehension}%</span><span class="mini-tag">Fluency: ${s.fluency}%</span></div>
         </div>
       </div>
 
       <div class="dash-grid" style="margin-top:6px">
         <div>
-          <div class="section-head"><h2>Upcoming Exams</h2><a class="link-more" href="#/examenes">View All ${I.arrowRight}</a></div>
+          <div class="section-head"><h2>Upcoming Modules</h2><a class="link-more" href="#/examenes">View All ${I.arrowRight}</a></div>
           ${upcoming.map((e, idx) => `
             <div class="exam-row ${idx === 0 ? "" : "muted"}">
               <div class="date-badge ${idx === 0 ? "" : "muted"}"><span class="m">${e.dateBadge.m}</span><span class="d">${e.dateBadge.d}</span></div>
@@ -175,7 +175,7 @@
                   <span class="chip">${I.clock}${formatDur(e.minutes)}</span>
                 </div>
               </div>
-              <a class="round-btn ${idx === 0 ? "" : "ghost"}" href="#/examen/${e.id}" aria-label="Abrir examen">${idx === 0 ? I.play : I.info}</a>
+              <a class="round-btn ${idx === 0 ? "" : "ghost"}" href="#/examen/${e.id}" aria-label="Open module">${idx === 0 ? I.play : I.info}</a>
             </div>`).join("")}
 
           <div class="section-head"><h2>Recent Activity</h2></div>
@@ -192,7 +192,7 @@
         <div class="rail">
           <div class="focus-card">
             <h3><span class="spark">${I.spark}</span> Focus Area</h3>
-            <p>Based on recent tests, your vocabulary in academic writing could use a boost. Try these targeted resources:</p>
+            <p>Based on recent sessions, your fluency in non-routine situations could use a boost. Try these targeted resources:</p>
             ${D.focusResources.map((r) => `
               <div class="resource"><span class="r-ico">${I[r.icon]}</span><div><b>${esc(r.title)}</b><span>${esc(r.sub)}</span></div></div>`).join("")}
           </div>
@@ -200,7 +200,7 @@
             <div class="tip-bg"></div>
             <div class="tip-body">
               <span class="tip-kicker">Study Tip</span>
-              <p>Review new vocabulary within 24 hours to increase retention by 60%.</p>
+              <p>Rehearse standard phraseology daily — consistency is what prevents readback errors on frequency.</p>
             </div>
           </div>
         </div>
@@ -215,7 +215,7 @@
   }
 
   function formatDur(min) {
-    if (min >= 60) { const h = min / 60; return (Number.isInteger(h) ? h : h.toFixed(1)) + " Hours"; }
+    if (min >= 60) { const h = min / 60; return (Number.isInteger(h) ? h : h.toFixed(1)) + (h === 1 ? " Hour" : " Hours"); }
     return min + " Mins";
   }
 
@@ -237,14 +237,14 @@
 
     const html = `
       <div class="page-head">
-        <h1>Exam Library</h1>
-        <p>Access our comprehensive suite of practice tests and mock exams, categorized by CEFR level.</p>
+        <h1>Module Library</h1>
+        <p>Access our full suite of Aviation English practice modules, organised by ICAO language proficiency level.</p>
       </div>
       <div class="lib-grid">
         <div class="filter-list">
           ${["All Levels", ...D.levels].map((l) => `<button data-filter="${esc(l)}" class="${l === activeFilter ? "active" : ""}">${esc(l)}</button>`).join("")}
         </div>
-        <div>${blocks || '<div class="empty">No hay exámenes en este nivel todavía.</div>'}</div>
+        <div>${blocks || '<div class="empty">No modules at this level yet.</div>'}</div>
       </div>`;
     return shell("examenes", html);
   }
@@ -262,13 +262,17 @@
         <p class="ec-desc">${esc(e.description)}</p>
         <div class="ec-skills">${e.skills.map((sk) => skillChip(sk)).join("")}</div>
         ${done
-          ? `<a class="btn btn-ghost btn-block" href="#/resultado/${e.id}">Ver resultado (${done.percent}%)</a>`
-          : `<a class="btn btn-primary btn-block" href="#/examen/${e.id}">Start Exam ${I.arrowRight}</a>`}
+          ? `<a class="btn btn-ghost btn-block" href="#/resultado/${e.id}">Review result (${done.percent}%)</a>`
+          : `<a class="btn btn-primary btn-block" href="#/examen/${e.id}">Start Module ${I.arrowRight}</a>`}
       </div>`;
   }
 
   function skillChip(sk) {
-    const map = { Reading: "book", Listening: "headphones", Writing: "pencil", Speaking: "speaker" };
+    const map = {
+      Comprehension: "headphones", Fluency: "speaker", Pronunciation: "speaker",
+      Phraseology: "pencil", Structure: "pencil", Vocabulary: "book",
+      Readback: "resources", Interactions: "resources",
+    };
     const key = map[sk.split(" ")[0]] || "book";
     return `<span class="chip">${I[key]}${esc(sk)}</span>`;
   }
@@ -321,7 +325,7 @@
           ${renderQuestion(q)}
           <div class="runner-footer">
             <button class="btn btn-ghost" id="prevBtn" ${runner.current === 0 ? "disabled" : ""}>${I.arrowLeft} Previous</button>
-            <button class="btn btn-primary" id="nextBtn">${runner.current === total - 1 ? "Revisar" : "Next Question"} ${I.arrowRight}</button>
+            <button class="btn btn-primary" id="nextBtn">${runner.current === total - 1 ? "Review" : "Next Question"} ${I.arrowRight}</button>
             <div class="spacer"></div>
             <button class="btn btn-gold" id="submitBtn">${I.checkCircle} Submit Section</button>
           </div>
@@ -346,7 +350,7 @@
               }).join("")}
             </div>
             <div class="nav-actions">
-              <button class="btn btn-ghost btn-block" id="flagBtn">${I.flag} ${runner.flags[exam.questions[runner.current].id] ? "Quitar marca" : "Flag for review"}</button>
+              <button class="btn btn-ghost btn-block" id="flagBtn">${I.flag} ${runner.flags[exam.questions[runner.current].id] ? "Remove flag" : "Flag for review"}</button>
             </div>
           </div>
         </aside>
@@ -421,7 +425,7 @@
     updateTimerUI();
     runner.timerId = setInterval(() => {
       runner.remaining--;
-      if (runner.remaining <= 0) { runner.remaining = 0; stopTimer(); toast("Se acabó el tiempo. Enviando examen…"); finalizeExam(); return; }
+      if (runner.remaining <= 0) { runner.remaining = 0; stopTimer(); toast("Time is up. Submitting your module…"); finalizeExam(); return; }
       if (runner.remaining % 5 === 0) persistAttempt();
       updateTimerUI();
     }, 1000);
@@ -440,11 +444,11 @@
     const answered = Object.keys(runner.answers).length;
     const unanswered = total - answered;
     modal({
-      title: "¿Enviar esta sección?",
+      title: "Submit this section?",
       body: unanswered > 0
-        ? `Tienes <b>${unanswered}</b> pregunta(s) sin responder de ${total}. Una vez enviado, no podrás cambiar tus respuestas.`
-        : `Has respondido las ${total} preguntas. Una vez enviado, no podrás cambiar tus respuestas.`,
-      confirmLabel: "Enviar ahora",
+        ? `You still have <b>${unanswered}</b> unanswered question(s) out of ${total}. Once submitted, you cannot change your answers.`
+        : `You have answered all ${total} questions. Once submitted, you cannot change your answers.`,
+      confirmLabel: "Submit now",
       onConfirm: finalizeExam,
     });
   }
@@ -475,20 +479,20 @@
     const exam = D.exams.find((e) => e.id === id);
     const r = store.get("result_" + id, null);
     if (!exam || !r) return notFound("resultados");
-    const passing = 60;
+    const passing = 60; // ICAO Operational Level 4 is the minimum to operate internationally
     const passed = r.percent >= passing;
-    const verdict = r.percent >= 80 ? "Pass (Merit)" : passed ? "Pass" : "Not passed";
+    const verdict = icaoVerdict(r.percent);
     const html = `
       <div class="results-head">
         <div>
-          <span class="badge badge-gold">Exam Completed</span>
-          <span class="chip" style="margin-left:8px">${new Date(r.date).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}</span>
+          <span class="badge badge-gold">Module Completed</span>
+          <span class="chip" style="margin-left:8px">${new Date(r.date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}</span>
           <h1>${esc(exam.title)}</h1>
-          <p>Tu desglose de rendimiento en esta sección de ${esc(exam.section)}.</p>
+          <p>Your performance breakdown for this ${esc(exam.section)} section, rated against the ICAO scale.</p>
         </div>
         <div class="results-actions">
           <a class="btn btn-ghost" href="#/">${I.dashboard} Dashboard</a>
-          <button class="btn btn-primary" data-toast="Certificado generado (demo)">${I.download} Certificate</button>
+          <button class="btn btn-primary" data-toast="Certificate generated (demo)">${I.download} Certificate</button>
         </div>
       </div>
 
@@ -505,23 +509,24 @@
         <div class="feedback-card">
           <h3><span class="fi">${I.spark}</span> AI Instructor Feedback</h3>
           <p>${passed
-            ? `Buen trabajo, ${esc(D.student.name.split(" ")[0])}. Acertaste ${r.correct} de ${r.total} preguntas. Demuestras una comprensión sólida; sigue reforzando el vocabulario académico.`
-            : `Sigue practicando, ${esc(D.student.name.split(" ")[0])}. Acertaste ${r.correct} de ${r.total}. Revisa las explicaciones de abajo para consolidar los puntos débiles.`}</p>
+            ? `Well done, ${esc(D.student.name.split(" ")[0])}. You answered ${r.correct} of ${r.total} correctly, placing you at ${esc(verdict)}. Your comprehension of standard phraseology is solid — keep building fluency in non-routine exchanges.`
+            : `Keep practising, ${esc(D.student.name.split(" ")[0])}. You answered ${r.correct} of ${r.total} correctly, below the Operational Level 4 threshold. Review the explanations below to close the gaps.`}</p>
           <div class="focus-box">
             <b>${I.trend} Next Focus Areas</b>
             <ul>
-              <li>Revisa las preguntas marcadas como incorrectas y sus explicaciones.</li>
-              <li>Amplía vocabulario de <b>phrasal verbs académicos</b> (p. ej. ‘look into’, ‘carry out’).</li>
+              <li>Review the questions marked incorrect and read each explanation.</li>
+              <li>Drill <b>readback discipline</b> on clearances, runway and level assignments.</li>
+              <li>Practise <b>plain language</b> for distress and urgency situations.</li>
             </ul>
           </div>
           <div class="feedback-foot">
-            <span class="status">Estado: ${passed ? "Listo para el siguiente nivel." : "Repite para mejorar tu nota."}</span>
-            <a class="btn btn-gold" href="#/examenes">Start Next Path</a>
+            <span class="status">Status: ${passed ? "Ready for the next module." : "Repeat to reach Operational Level 4."}</span>
+            <a class="btn btn-gold" href="#/examenes">Start Next Module</a>
           </div>
         </div>
       </div>
 
-      <div class="section-head"><h2>Skill Breakdown</h2></div>
+      <div class="section-head"><h2>ICAO Descriptor Breakdown</h2></div>
       <div class="skills-grid">
         ${skillBreakdown(r).map((sk) => `
           <div class="skill-tile ${sk.low ? "low" : ""}">
@@ -535,7 +540,7 @@
       <div class="section-head"><h2>Detailed Review</h2></div>
       <div class="review">
         <aside class="review-side">
-          <h3>Resumen</h3>
+          <h3>Summary</h3>
           <div class="rev-item active"><span>${esc(exam.section)}</span><span class="mini-pct">${r.percent}%</span></div>
           <div class="rev-legend">
             <span><i class="dot" style="background:var(--success)"></i>Correct (${r.correct})</span>
@@ -549,18 +554,29 @@
     return shell("resultados", html);
   }
 
+  // Demo mapping of an overall score to an ICAO proficiency level.
+  function icaoVerdict(pct) {
+    if (pct >= 90) return "ICAO Level 6 (Expert)";
+    if (pct >= 75) return "ICAO Level 5 (Extended)";
+    if (pct >= 60) return "ICAO Level 4 (Operational)";
+    if (pct >= 40) return "ICAO Level 3 (Pre-Operational)";
+    return "ICAO Level 2 (Elementary)";
+  }
+
   function skillBreakdown(r) {
-    // Derivar cuatro "skills" del rendimiento global para la demo.
+    // Derive the six ICAO language-proficiency descriptors from the overall score (demo).
     const base = r.percent;
     const mk = (name, icon, delta, desc) => {
       const pct = Math.max(0, Math.min(100, base + delta));
-      return { name, icon, pct, filled: Math.max(1, Math.round(pct / 20)), low: pct < 75, desc };
+      return { name, icon, pct, filled: Math.max(1, Math.round(pct / 20)), low: pct < 60, desc };
     };
     return [
-      mk("Reading", "book", 0, "Buen escaneo del texto, cuida la inferencia."),
-      mk("Use of English", "pencil", -5, "Repasa colocaciones y phrasal verbs."),
-      mk("Vocabulary", "resources", 3, "Vocabulario en crecimiento constante."),
-      mk("Grammar", "check", -8, "Refuerza condicionales y tiempos perfectos."),
+      mk("Pronunciation", "speaker", 2, "Intelligible to the aeronautical community; minor first-language influence."),
+      mk("Structure", "pencil", -4, "Basic structures used well; complex forms still developing."),
+      mk("Vocabulary", "book", 1, "Sufficient range for common topics; paraphrases when unsure."),
+      mk("Fluency", "spark", -6, "Appropriate tempo; occasional hesitation in non-routine exchanges."),
+      mk("Comprehension", "headphones", 3, "Accurate on common and work-related topics, including read-back checks."),
+      mk("Interactions", "resources", -8, "Generally responsive; verify and clarify meaning under pressure."),
     ];
   }
 
@@ -587,21 +603,21 @@
   function viewResultsHub() {
     const results = D.exams.map((e) => ({ e, r: store.get("result_" + e.id, null) })).filter((x) => x.r);
     let html = `
-      <div class="page-head"><h1>Results & Progress</h1><p>Revisa tus intentos y el desglose de rendimiento por examen.</p></div>`;
+      <div class="page-head"><h1>Results &amp; Progress</h1><p>Review your attempts and your ICAO descriptor breakdown for each module.</p></div>`;
     if (!results.length) {
       html += `
         <div class="card" style="padding:0;overflow:hidden;margin-top:24px">
           ${resultsSamplePreview()}
         </div>
-        <div class="empty">Aún no has completado ningún examen. <a class="link-more" href="#/examenes" style="display:inline-flex">Ir a mis exámenes ${I.arrowRight}</a></div>`;
+        <div class="empty">You haven't completed any module yet. <a class="link-more" href="#/examenes" style="display:inline-flex">Go to my modules ${I.arrowRight}</a></div>`;
     } else {
       html += `<div class="exam-cards" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));margin-top:24px">
         ${results.map(({ e, r }) => `
           <div class="exam-card">
-            <div class="ec-top"><span class="badge badge-gold">${r.percent}%</span><span class="time-chip">${I.clock}${new Date(r.date).toLocaleDateString("es-CL")}</span></div>
+            <div class="ec-top"><span class="badge badge-gold">${r.percent}%</span><span class="time-chip">${I.clock}${new Date(r.date).toLocaleDateString("en-US")}</span></div>
             <h3>${esc(e.title)}</h3>
-            <p class="ec-desc">Aciertos: ${r.correct}/${r.total} · ${r.percent >= 60 ? "Aprobado" : "Reprobado"}</p>
-            <a class="btn btn-primary btn-block" href="#/resultado/${e.id}">Ver desglose ${I.arrowRight}</a>
+            <p class="ec-desc">Correct: ${r.correct}/${r.total} · ${esc(icaoVerdict(r.percent))}</p>
+            <a class="btn btn-primary btn-block" href="#/resultado/${e.id}">View breakdown ${I.arrowRight}</a>
           </div>`).join("")}
       </div>`;
     }
@@ -611,9 +627,9 @@
   function resultsSamplePreview() {
     const s = D.sampleResult;
     return `<div style="padding:26px">
-      <span class="badge badge-navy">Ejemplo</span>
+      <span class="badge badge-navy">Example</span>
       <h2 style="font-size:26px;margin:12px 0 4px">${esc(s.examTitle)}</h2>
-      <p style="color:var(--slate-gray)">Así se verá tu informe detallado tras rendir un examen: nota global, feedback del instructor y revisión pregunta por pregunta.</p>
+      <p style="color:var(--slate-gray)">This is how your detailed report will look after you take a module: overall score, ICAO level verdict, instructor feedback and a question-by-question review.</p>
     </div>`;
   }
 
@@ -625,10 +641,12 @@
 
   function viewResources() {
     const cards = [
-      { icon: "book", t: "Academic Word List", d: "Flashcards y quiz de vocabulario académico esencial.", tag: "Flashcards" },
-      { icon: "play", t: "Mastering Complex Sentences", d: "Video-lección de 12 minutos sobre estructuras avanzadas.", tag: "Video" },
-      { icon: "headphones", t: "Listening: Native Accents", d: "Colección de audios con acentos británicos y americanos.", tag: "Audio" },
-      { icon: "pencil", t: "Writing Task Templates", d: "Plantillas y modelos para Writing Part 1 y 2.", tag: "Plantillas" },
+      { icon: "book", t: "Standard Phraseology Deck", d: "Flashcards and quiz covering ICAO standard words and phrases.", tag: "Flashcards" },
+      { icon: "play", t: "Reading Back Clearances", d: "12-minute video lesson on correct read-back of clearances and levels.", tag: "Video" },
+      { icon: "headphones", t: "ATC Comms: Listening Bank", d: "Recorded pilot–controller exchanges across a range of accents.", tag: "Audio" },
+      { icon: "speaker", t: "Emergency Phraseology Guide", d: "MAYDAY vs PAN-PAN, plain language and distress procedures.", tag: "Reference" },
+      { icon: "pencil", t: "ICAO Phonetic Alphabet", d: "Practice the alphabet, numbers and pronunciation conventions.", tag: "Drill" },
+      { icon: "resources", t: "METAR & TAF Basics", d: "Decode aerodrome weather reports and forecasts step by step.", tag: "Weather" },
     ];
     const body = `<div class="exam-cards" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
       ${cards.map((c) => `
@@ -636,10 +654,10 @@
           <div class="ec-top"><span class="badge badge-gold">${c.tag}</span><span class="st-ico" style="width:40px;height:40px;border-radius:999px;background:var(--surface-container-low);display:grid;place-items:center;color:var(--eagle-navy)">${I[c.icon]}</span></div>
           <h3>${esc(c.t)}</h3>
           <p class="ec-desc">${esc(c.d)}</p>
-          <button class="btn btn-ghost btn-block" data-toast="Recurso disponible próximamente">Abrir recurso ${I.arrowRight}</button>
+          <button class="btn btn-ghost btn-block" data-toast="Resource coming soon">Open resource ${I.arrowRight}</button>
         </div>`).join("")}
     </div>`;
-    return viewSimple("recursos", "Study Resources", "Materiales de estudio para reforzar tus cuatro destrezas.", body);
+    return viewSimple("recursos", "Study Resources", "Aviation English materials to build all six ICAO language descriptors.", body);
   }
 
   function viewSettings() {
@@ -647,17 +665,17 @@
     const installed = window.matchMedia("(display-mode: standalone)").matches;
     const body = `
       <div class="card" style="padding:26px;max-width:640px">
-        <h3 style="font-size:22px;margin-bottom:16px">Perfil</h3>
-        <div class="rev-item"><span>Nombre</span><b>${esc(s.name)}</b></div>
-        <div class="rev-item"><span>Nivel actual</span><b>${esc(s.level)}</b></div>
-        <div class="rev-item"><span>Meta</span><b>${esc(s.goal)}</b></div>
-        <div class="rev-item"><span>App instalada</span><b>${installed ? "Sí" : "No"}</b></div>
+        <h3 style="font-size:22px;margin-bottom:16px">Profile</h3>
+        <div class="rev-item"><span>Name</span><b>${esc(s.name)}</b></div>
+        <div class="rev-item"><span>Current level</span><b>${esc(s.level)}</b></div>
+        <div class="rev-item"><span>Goal</span><b>${esc(s.goal)}</b></div>
+        <div class="rev-item"><span>App installed</span><b>${installed ? "Yes" : "No"}</b></div>
         <div style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap">
-          <button class="btn btn-gold" id="installBtn2">${I.download} Instalar aplicación</button>
-          <button class="btn btn-ghost" id="resetBtn">Borrar intentos guardados</button>
+          <button class="btn btn-gold" id="installBtn2">${I.download} Install app</button>
+          <button class="btn btn-ghost" id="resetBtn">Clear saved attempts</button>
         </div>
       </div>`;
-    return viewSimple("ajustes", "Settings", "Gestiona tu perfil y la instalación de la aplicación.", body);
+    return viewSimple("ajustes", "Settings", "Manage your profile and install the application.", body);
   }
 
   /* ----------------------------- Modal ----------------------------- */
@@ -669,8 +687,8 @@
         <h3>${title}</h3>
         <p>${body}</p>
         <div class="modal-actions">
-          <button class="btn btn-ghost" data-cancel>${cancelLabel || "Cancelar"}</button>
-          <button class="btn btn-primary" data-confirm>${confirmLabel || "Confirmar"}</button>
+          <button class="btn btn-ghost" data-cancel>${cancelLabel || "Cancel"}</button>
+          <button class="btn btn-primary" data-confirm>${confirmLabel || "Confirm"}</button>
         </div>
       </div>`;
     const close = () => back.remove();
@@ -681,7 +699,7 @@
   }
 
   function notFound(back) {
-    return shell(back, `<div class="empty"><h2 style="font-size:26px">Contenido no encontrado</h2><p>El recurso solicitado no existe.</p><a class="btn btn-primary" href="#/">Volver al inicio</a></div>`);
+    return shell(back, `<div class="empty"><h2 style="font-size:26px">Content not found</h2><p>The requested item does not exist.</p><a class="btn btn-primary" href="#/">Back to home</a></div>`);
   }
 
   /* ----------------------------- Router ----------------------------- */
@@ -700,7 +718,7 @@
     const ib2 = $("#installBtn2"); if (ib2) ib2.onclick = triggerInstall;
     const rb = $("#resetBtn"); if (rb) rb.onclick = () => {
       D.exams.forEach((e) => { store.del("result_" + e.id); store.del("attempt_" + e.id); });
-      toast("Intentos borrados"); route();
+      toast("Attempts cleared"); route();
     };
   }
 
@@ -732,17 +750,17 @@
     e.preventDefault();
     deferredPrompt = e;
     if (!store.get("install_dismissed", false)) {
-      toast("Instala Golden Eagle Academy para acceso sin conexión.", {
-        label: "Instalar",
+      toast("Install Golden Eagle Academy for offline access.", {
+        label: "Install",
         onClick: triggerInstall,
       });
     }
   });
-  window.addEventListener("appinstalled", () => { deferredPrompt = null; toast("¡Aplicación instalada!"); });
+  window.addEventListener("appinstalled", () => { deferredPrompt = null; toast("App installed!"); });
 
   async function triggerInstall() {
     if (!deferredPrompt) {
-      toast("Usa el menú del navegador → “Instalar app” / “Agregar a pantalla de inicio”.");
+      toast("Use your browser menu → “Install app” / “Add to Home Screen”.");
       return;
     }
     deferredPrompt.prompt();
@@ -754,7 +772,7 @@
   /* ----------------------------- Service worker ----------------------------- */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registro falló:", err));
+      navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed:", err));
     });
   }
 

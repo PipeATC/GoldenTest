@@ -1,8 +1,8 @@
 {
-  "name": "Golden Eagle Academy — Portal de Exámenes",
+  "name": "Golden Eagle Academy — Aviation English (ICAO)",
   "short_name": "Golden Eagle",
-  "description": "Portal instalable para rendir exámenes de inglés en la academia Golden Eagle.",
-  "lang": "es",
+  "description": "Installable Aviation English exam portal for Golden Eagle Academy, aligned to the ICAO language proficiency levels.",
+  "lang": "en",
   "dir": "ltr",
   "start_url": "./?source=pwa",
   "scope": "./",
@@ -22,14 +22,14 @@
   ],
   "shortcuts": [
     {
-      "name": "Mis Exámenes",
-      "short_name": "Exámenes",
+      "name": "My Modules",
+      "short_name": "Modules",
       "url": "./?source=pwa#/examenes",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Resultados y Progreso",
-      "short_name": "Resultados",
+      "name": "Results & Progress",
+      "short_name": "Results",
       "url": "./?source=pwa#/resultados",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }

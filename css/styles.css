@@ -575,7 +575,7 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
 .feedback-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
 .feedback-foot .status { font-family: var(--font-ui); font-size: 13px; color: #9aa3b8; }
 
-.skills-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin-top: 20px; }
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px; margin-top: 20px; }
 .skill-tile { border: 1px solid var(--outline-variant); border-radius: var(--r-lg); padding: 20px; background: var(--surface-container-lowest); }
 .skill-tile .st-top { display: flex; align-items: center; justify-content: space-between; }
 .skill-tile .st-ico { width: 40px; height: 40px; border-radius: var(--r); background: var(--surface-container-low); display: grid; place-items: center; color: var(--eagle-navy); }
