@@ -1,58 +1,77 @@
-# Golden Eagle Academy — Portal de Exámenes (PWA)
+# Golden Eagle Academy — Aviation English (ICAO) PWA
 
-Aplicación web **instalable (PWA)** para rendir exámenes de inglés en la academia
-**Golden Eagle**. Construida a partir del diseño *Academic Prestige* de Stitch:
-paleta **Eagle Navy** `#091731` + **Golden Yellow** `#FBB900`, tipografías
-Comfortaa / Source Sans 3 / Roboto Flex, y un sistema de tarjetas con bordes
-suaves y esquinas redondeadas.
+An **installable (PWA)** web app for **Aviation English** training and testing at
+**Golden Eagle Academy**, aligned to the **ICAO Language Proficiency Rating
+Scale** (Levels 1–6). Built from the Stitch *"Academic Prestige"* design:
+**Eagle Navy** `#091731` + **Golden Yellow** `#FBB900`, Comfortaa / Source Sans 3
+/ Roboto Flex typography, and a soft-bordered, rounded card system. The entire
+interface is in English.
 
-## Características
+## Modules
 
-- **Instalable / offline**: `manifest.webmanifest` + service worker (`sw.js`) con
-  precache del app-shell, `stale-while-revalidate` para las fuentes y página
-  `offline.html` de respaldo.
-- **SPA sin dependencias**: enrutado por hash, sin frameworks ni CDN de runtime
-  (solo Google Fonts, cacheadas por el SW). Todo funciona sin conexión.
-- **4 pantallas del diseño**, más navegación completa:
-  1. **Dashboard** — saludo, tarjetas de nivel/horas/promedio, próximos
-     exámenes, actividad reciente, área de enfoque y consejo de estudio.
-  2. **Exam Library (My Exams)** — exámenes por nivel CEFR, filtros y tarjetas
-     con destrezas y duración.
-  3. **Examen en progreso** — pasaje de lectura con huecos, tarjeta de pregunta,
-     **temporizador**, **navegador de preguntas**, marcar para revisión,
-     autoguardado y reanudación.
-  4. **Resultados** — nota global, feedback del instructor, desglose por
-     destreza y revisión detallada pregunta por pregunta con explicaciones.
+The programme is organised into three modules mapped onto the ICAO levels:
 
-## Estructura
+| Module | Focus | ICAO level |
+| --- | --- | --- |
+| **Aviation 101** | Radiotelephony foundations: phonetic alphabet, number pronunciation, standard phraseology, read-back | Level 3 → 4 |
+| **Aviation 102** | Operational communications: clearances, position reports, altimeter setting (QNH), aerodrome weather (METAR) | Level 4 (Operational) |
+| **Aviation 103** | Non-routine & emergencies: MAYDAY vs PAN-PAN, plain language, negotiating misunderstandings | Level 5 → 6 |
+
+Results are rated against the **six ICAO language descriptors**: Pronunciation,
+Structure, Vocabulary, Fluency, Comprehension and Interactions. The pass
+threshold is **Operational Level 4** — the minimum required to operate
+internationally.
+
+## Features
+
+- **Installable / offline**: `manifest.webmanifest` + service worker (`sw.js`)
+  with app-shell precache, `stale-while-revalidate` for fonts, and an
+  `offline.html` fallback.
+- **Vanilla SPA**: hash routing, no runtime framework or CDN (only Google Fonts,
+  cached by the SW).
+- **Screens**:
+  1. **Dashboard** — welcome banner, ICAO level / study hours / average score,
+     upcoming modules, recent activity, focus area and study tip.
+  2. **My Modules (Exam Library)** — modules grouped by ICAO level, with filters,
+     descriptors and duration.
+  3. **Module Runner** — radiotelephony reading passage with gap-fill,
+     multiple-choice questions, **countdown timer**, **question navigator**,
+     flag-for-review, autosave and resume.
+  4. **Results** — overall score with **ICAO level verdict**, AI instructor
+     feedback, ICAO descriptor breakdown and a question-by-question review with
+     explanations.
+- Fully responsive with a mobile drawer navigation.
+
+## Structure
 
 ```
-index.html                 Punto de entrada (SPA)
-offline.html               Fallback sin conexión
-manifest.webmanifest       Metadatos de instalación
+index.html                 SPA entry point
+offline.html               Offline fallback
+manifest.webmanifest       Install metadata
 sw.js                      Service worker (cache/offline)
-css/styles.css             Sistema de diseño Academic Prestige
-js/data.js                 Datos de exámenes y perfil (demo)
-js/app.js                  Router, motor de examen, resultados y PWA
-icons/                     Iconos de la app (navy + águila dorada)
-assets/                    Logo del águila
+css/styles.css             Academic Prestige design system
+js/data.js                 Modules, questions and student profile (demo)
+js/app.js                  Router, module runner, results and PWA logic
+icons/                     App icons (navy + golden eagle)
+assets/                    Eagle logo
 ```
 
-## Uso local
+## Running locally
 
-Un service worker requiere HTTP(S) (no `file://`). Sirve la carpeta con
-cualquier servidor estático, por ejemplo:
+A service worker needs HTTP(S) (not `file://`). Serve the folder with any static
+server, e.g.:
 
 ```bash
 python3 -m http.server 8080
-# luego abre http://localhost:8080
+# then open http://localhost:8080
 ```
 
-Para instalar: en Chrome/Edge aparece el icono *Instalar* en la barra de
-direcciones (o menú → “Instalar app”); en iOS Safari, Compartir → “Agregar a
-pantalla de inicio”.
+To install: in Chrome/Edge use the *Install* icon in the address bar (or menu →
+"Install app"); on iOS Safari, Share → "Add to Home Screen".
 
-## Notas
+## Notes
 
-Los datos de exámenes, respuestas e intentos se guardan en `localStorage` del
-navegador (demo). En una versión de producción se conectarían a una API.
+Module content, answers and attempts are stored in the browser's `localStorage`
+(demo). In production these would be served from an API. The ICAO level verdict
+and descriptor breakdown are illustrative mappings derived from the overall
+score for demonstration purposes.
