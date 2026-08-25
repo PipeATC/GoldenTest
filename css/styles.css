@@ -61,6 +61,12 @@
 
 html, body { margin: 0; padding: 0; }
 
+html {
+  /* Prevent iOS text auto-inflation on rotation while keeping user zoom. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-body);
   background: var(--background);
@@ -68,6 +74,22 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
+  /* Never allow sideways scrolling on small screens. */
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Lock background scroll while the mobile navigation drawer is open. */
+body.nav-open { overflow: hidden; }
+
+/* Honour reduced-motion preferences across the app. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
@@ -75,6 +97,9 @@ h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; margin: 0; let
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 img { max-width: 100%; display: block; }
+
+/* Snappier tapping: drop the synthetic click delay on interactive controls. */
+button, a, label, input, .btn, .option, .nav-cell, .round-btn, .icon-btn { touch-action: manipulation; }
 
 /* Default sizing for inline icon SVGs (those without an explicit width attr).
    Explicit rules below override this via equal specificity + later source order. */
@@ -90,6 +115,7 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Scrim only participates on mobile (overridden in the media query). */
@@ -105,6 +131,7 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 40;
 }
 .brand {
@@ -185,7 +212,7 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
   background: transparent;
   outline: none;
   width: 100%;
-  font-size: 15px;
+  font-size: 16px; /* 16px avoids iOS focus-zoom */
   color: var(--on-surface);
   font-family: var(--font-ui);
 }
@@ -651,6 +678,18 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
 .empty { text-align: center; color: var(--slate-gray); padding: 60px 20px; }
 
 /* ========================= Responsive ========================= */
+
+/* Fluid type — headings scale smoothly with the viewport instead of jumping
+   at breakpoints, so every intermediate screen size reads well. */
+.hero h1 { font-size: clamp(1.9rem, 1.2rem + 3.2vw, 2.875rem); }
+.hero p { font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem); }
+.page-head h1,
+.results-head h1 { font-size: clamp(1.9rem, 1.2rem + 3vw, 2.75rem); }
+.section-title { font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.75rem); }
+.section-head h2,
+.level-title h2 { font-size: clamp(1.3rem, 1rem + 1.4vw, 1.875rem); }
+
+/* ---- Large tablets / small laptops: collapse the two-column layouts ---- */
 @media (max-width: 1100px) {
   .dash-grid { grid-template-columns: 1fr; }
   .rail { flex-direction: row; flex-wrap: wrap; }
@@ -663,35 +702,131 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
   .skills-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* ---- Tablet portrait and below: switch to the mobile shell (drawer nav) ---- */
 @media (max-width: 900px) {
   :root { --sidebar-w: 0px; }
   .app { grid-template-columns: 1fr; }
   .sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0; width: 280px;
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: min(280px, 86vw);
+    height: 100vh; height: 100dvh;
     transform: translateX(-100%); transition: transform .25s ease;
     box-shadow: var(--shadow-2);
+    padding-left: max(16px, env(safe-area-inset-left));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   body.nav-open .sidebar { transform: none; }
   .scrim { display: none; position: fixed; inset: 0; background: rgba(9,23,49,.5); z-index: 39; }
   body.nav-open .scrim { display: block; }
   .mobile-bar {
     display: flex; align-items: center; gap: 14px;
-    padding: 12px 16px; background: #05060a; color: #fff; position: sticky; top: 0; z-index: 35;
+    padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+    background: #05060a; color: #fff; position: sticky; top: 0; z-index: 35;
   }
   .mobile-bar .brand-name { font-family: var(--font-head); font-weight: 700; font-size: 20px; }
   .mobile-bar img { width: 30px; height: 30px; }
-  .hamburger { background: transparent; border: none; color: #fff; display: grid; place-items: center; width: 40px; height: 40px; cursor: pointer; }
-  .topbar { padding: 12px 16px; }
+  .hamburger { background: transparent; border: none; color: #fff; display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
+  .topbar {
+    padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+  }
   .topbar .search { display: none; }
-  .content { padding: 18px 16px 80px; }
+  .topbar-right { gap: 14px; }
+  .content {
+    padding: 18px max(16px, env(safe-area-inset-right)) calc(64px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
   .hero { padding: 26px; flex-direction: column; align-items: flex-start; }
-  .hero h1 { font-size: 32px; }
+  .hero .btn { width: 100%; }
   .stats { grid-template-columns: 1fr; }
   .exam-cards { grid-template-columns: 1fr; }
   .lib-grid { grid-template-columns: 1fr; }
-  .filter-list { position: static; flex-direction: row; flex-wrap: wrap; }
+  /* Turn the level filters into a horizontally scrollable strip. */
+  .filter-list {
+    position: static; flex-direction: row; flex-wrap: nowrap;
+    overflow-x: auto; gap: 8px; padding-bottom: 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .filter-list::-webkit-scrollbar { display: none; }
+  .filter-list button { white-space: nowrap; flex: none; }
   .options { grid-template-columns: 1fr; }
   .skills-grid { grid-template-columns: 1fr; }
-  .page-head h1 { font-size: 32px; }
-  .results-head h1 { font-size: 30px; }
+
+  /* Exam runner header re-flows: progress bar takes the full width. */
+  .exam-header { gap: 14px 18px; }
+  .progress-wrap { margin-left: 0; width: 100%; order: 3; }
+  .progress-track { flex: 1; width: auto; }
+  .timer { margin-left: auto; }
+
+  .results-head { flex-direction: column; }
+  .results-actions { width: 100%; }
+  .results-actions .btn { flex: 1; }
+}
+
+/* ---- Phones ---- */
+@media (max-width: 600px) {
+  .content { padding-top: 14px; }
+  .hero { padding: 22px; }
+  .stats { gap: 16px; margin-top: 20px; }
+  .section-head { margin: 30px 0 14px; }
+
+  /* Stacked exam rows read better than a cramped three-across layout. */
+  .exam-row { flex-wrap: wrap; gap: 14px; padding: 16px; }
+  .exam-row .exam-main { flex: 1 1 100%; order: 3; }
+  .date-badge { width: 56px; height: 56px; }
+  .date-badge .d { font-size: 22px; }
+  .round-btn { margin-left: auto; }
+
+  .exam-header h1 { font-size: 24px; }
+  .passage { padding: 20px 18px; }
+  .question-card { padding: 20px 18px; }
+  .q-head h3 { font-size: 19px; }
+
+  .grade-card .g-value { font-size: 52px; }
+  .grade-card .g-value .pct { font-size: 24px; }
+  .grade-card .g-value .verdict { font-size: 20px; display: block; margin-top: 4px; }
+
+  /* Full-width actions are easier to tap. */
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; }
+  .results-actions { flex-direction: column; }
+  .results-actions .btn { width: 100%; flex: none; }
+  .runner-footer { flex-wrap: wrap; }
+  .runner-footer .btn { flex: 1 1 calc(50% - 8px); }
+  .runner-footer .spacer { display: none; }
+  .runner-footer #submitBtn { flex-basis: 100%; }
+
+  /* Comfortable minimum touch targets on the question navigator. */
+  .nav-grid { grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .nav-cell { min-height: 40px; }
+
+  .toast-host { left: 16px; right: 16px; transform: none; bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .toast { width: 100%; justify-content: space-between; }
+}
+
+/* ---- Small phones ---- */
+@media (max-width: 400px) {
+  .content { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .brand .brand-name,
+  .mobile-bar .brand-name { font-size: 18px; }
+  .hero { padding: 20px; }
+  .stat { padding: 18px; min-height: 0; }
+  .exam-card { padding: 20px; }
+  .btn { padding: 12px 18px; }
+  .nav-grid { grid-template-columns: repeat(5, 1fr); }
+  .legend { gap: 12px; }
+}
+
+/* ---- Short landscape (phones held sideways): let the drawer scroll ---- */
+@media (max-height: 480px) and (orientation: landscape) {
+  .sidebar { padding-top: 14px; padding-bottom: 14px; }
+  .hero { padding: 20px 26px; }
+}
+
+/* ---- Pointer-fine, hover-capable devices keep richer hover affordances;
+        coarse pointers get larger comfortable hit areas. ---- */
+@media (hover: none) and (pointer: coarse) {
+  .nav a { padding: 15px 16px; }
+  .option { padding: 18px; }
+  .filter-list button { padding: 14px 18px; }
+  .icon-btn { width: 44px; height: 44px; }
 }
