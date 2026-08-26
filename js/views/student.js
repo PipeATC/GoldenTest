@@ -1,8 +1,8 @@
 import { I, esc, toast, modal, $, $$, formatDur, fmtDate, windowState } from "../ui.js";
 import { render, renderRaw } from "../render.js";
 import { session } from "../auth.js";
-import { myAssignments, startExam, submitExam, reviewExam, saveProgress } from "../api.js";
-import { createExamGuard } from "../security.js";
+import { myAssignments, startExam, submitExam, reviewExam, resumeExam, saveProgress } from "../api.js";
+import { createExamGuard, preflightCheck } from "../security.js";
 
 /* ============================== Inicio ============================== */
 export async function studentDashboard() {
@@ -86,7 +86,7 @@ function assignRow(a) {
 }
 
 /* ============================== Motor de examen ============================== */
-const R = { attemptId: null, questions: [], answers: {}, current: 0, deadline: 0, timerId: null, guard: null, module: null, saveTimer: null };
+const R = { attemptId: null, questions: [], answers: {}, current: 0, deadline: 0, timerId: null, guard: null, module: null, saveTimer: null, security: { action: "flag", max_incidents: 3 }, frozen: false };
 
 export async function studentRunExam(assignmentId) {
   renderRaw(`<div class="exam-loading"><div class="spinner"></div><p>Preparando tu prueba…</p></div>`);
@@ -103,22 +103,24 @@ export async function studentRunExam(assignmentId) {
   R.answers = data.answers || {};
   R.current = 0;
   R.module = data.module;
+  R.security = data.security || { action: "flag", max_incidents: 3 };
+  R.frozen = false;
 
   const started = data.started_at ? new Date(data.started_at).getTime() : Date.now();
   const byDuration = started + (data.duration_minutes || 60) * 60000;
   const byWindow = data.closes_at ? new Date(data.closes_at).getTime() : Infinity;
   R.deadline = Math.min(byDuration, byWindow);
 
-  // Confirmación previa con las reglas de seguridad.
-  renderRaw(examIntro(data));
+  // Chequeo previo del dispositivo (p.ej. iOS debe correr como PWA instalada).
+  const block = preflightCheck();
+
+  renderRaw(examIntro(data, block));
+  if (block) return;  // sin botón de comenzar hasta resolver el bloqueo
+
   $("#beginExam").onclick = async () => {
     R.guard = createExamGuard({
       onEvent: () => scheduleSave(),
-      onLeave: (leaves, max) => {
-        toast(`⚠️ Saliste de la prueba (${leaves}/${max}). Vuelve a la pantalla.`);
-        if (leaves >= max) { toast("Se alcanzó el máximo de salidas. Entregando…"); finalize(true); }
-      },
-      maxLeaves: 3,
+      onIncident: handleIncident,
     });
     R.guard.start();
     drawRunner();
@@ -126,16 +128,37 @@ export async function studentRunExam(assignmentId) {
   };
 }
 
-function examIntro(data) {
-  return `
-  <div class="exam-intro">
-    <div class="intro-card">
+// Política ante una incidencia, según la configuración del módulo.
+function handleIncident(ev, count) {
+  scheduleSave();
+  const action = R.security.action || "flag";
+  if (action === "lock") { freezeExam(); return; }
+  if (action === "submit") {
+    const max = R.security.max_incidents || 3;
+    toast(`⚠️ Saliste de la prueba (${count}/${max}). Vuelve a la pantalla.`);
+    if (count >= max) { toast("Se alcanzó el máximo de salidas. Entregando…"); finalize(); }
+    return;
+  }
+  toast("⚠️ Salida de la prueba registrada. Vuelve a la pantalla.");
+}
+
+function examIntro(data, block) {
+  const inner = block
+    ? `
+      <span class="lock-emblem warn">${I.info}</span>
+      <h1>${esc(block.title)}</h1>
+      <p class="intro-sub">${esc(block.detail)}</p>
+      <div class="intro-actions">
+        <a class="btn btn-ghost" href="#/examenes">Volver</a>
+        <button class="btn btn-primary" onclick="location.reload()">Ya lo hice, reintentar</button>
+      </div>`
+    : `
       <span class="lock-emblem">${I.lock}</span>
       <h1>${esc(data.module?.title || "Prueba")}</h1>
       <p class="intro-sub">Estás por comenzar una prueba en <b>modo seguro</b>.</p>
       <ul class="rules">
         <li>${I.shield} La prueba se abre en <b>pantalla completa</b>.</li>
-        <li>${I.info} Si cambias de aplicación o pestaña, quedará <b>registrado</b> y podría <b>entregarse automáticamente</b>.</li>
+        <li>${I.info} Si cambias de aplicación o pestaña, quedará <b>registrado</b>${securityConsequence()}.</li>
         <li>${I.clock} Tienes <b>${data.duration_minutes} min</b>. El tiempo corre desde ahora.</li>
         <li>${I.exams} Son <b>${(data.questions || []).length}</b> preguntas seleccionadas al azar para ti.</li>
       </ul>
@@ -143,9 +166,58 @@ function examIntro(data) {
         <a class="btn btn-ghost" href="#/examenes">Cancelar</a>
         <button class="btn btn-gold" id="beginExam">${I.lock} Comenzar en modo seguro</button>
       </div>
-      <p class="intro-note">Nota: la web no puede impedir capturas de pantalla al 100%. Las incidencias quedan registradas para tu profesor.</p>
-    </div>
-  </div>`;
+      <p class="intro-note">Nota: la web no puede impedir capturas de pantalla al 100%. Las incidencias quedan registradas para tu profesor.</p>`;
+  return `<div class="exam-intro"><div class="intro-card">${inner}</div></div>`;
+}
+
+function securityConsequence() {
+  if (R.security.action === "lock") return " y el examen se <b>congelará</b> hasta que el profesor lo reanude";
+  if (R.security.action === "submit") return ` y tras ${R.security.max_incidents || 3} salidas se <b>entregará automáticamente</b>`;
+  return "";
+}
+
+/* ---------- Congelado con código del profesor ---------- */
+function freezeExam() {
+  if (R.frozen) return;
+  R.frozen = true;
+  R.freezeStart = Date.now();
+  stopTimer();
+  const el = document.createElement("div");
+  el.className = "freeze-overlay";
+  el.id = "freezeOverlay";
+  el.innerHTML = `
+    <div class="freeze-card">
+      <span class="lock-emblem">${I.lock}</span>
+      <h2>Examen en pausa</h2>
+      <p>Se detectó una salida de la prueba. Para continuar, el <b>profesor</b> debe ingresar su código.</p>
+      <form id="resumeForm">
+        <input type="password" id="proctorCode" inputmode="numeric" autocomplete="off" placeholder="Código del profesor" required>
+        <button class="btn btn-gold btn-block" type="submit">Reanudar examen</button>
+      </form>
+      <p class="freeze-err" id="resumeErr"></p>
+    </div>`;
+  document.body.appendChild(el);
+  const form = el.querySelector("#resumeForm");
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const code = el.querySelector("#proctorCode").value.trim();
+    const btn = form.querySelector("button");
+    btn.disabled = true;
+    try {
+      const ok = await resumeExam(R.attemptId, code);
+      if (ok) {
+        // Extiende el plazo por el tiempo que estuvo congelado.
+        if (R.freezeStart) { R.deadline += Date.now() - R.freezeStart; R.freezeStart = null; }
+        el.remove(); R.frozen = false;
+        if (R.guard) R.guard.reenterFullscreen();
+        startTimer();
+      }
+      else { el.querySelector("#resumeErr").textContent = "Código incorrecto."; btn.disabled = false; el.querySelector("#proctorCode").value = ""; }
+    } catch (err) {
+      el.querySelector("#resumeErr").textContent = "Error: " + (err.message || err); btn.disabled = false;
+    }
+  };
+  el.querySelector("#proctorCode").focus();
 }
 
 function drawRunner() {

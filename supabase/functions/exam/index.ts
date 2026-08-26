@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
     if (action === "start") return await start(admin, uid, payload);
     if (action === "submit") return await submit(admin, uid, payload);
     if (action === "review") return await review(admin, uid, payload);
+    if (action === "resume") return await resume(admin, uid, payload);
     return json({ error: "Acción desconocida" }, 400);
   } catch (e) {
     console.error(e);
@@ -94,7 +95,7 @@ async function start(admin: any, uid: string, p: any) {
 
   const { data: module } = await admin
     .from("modules")
-    .select("id, title, description, duration_minutes, questions_per_exam, passing_score")
+    .select("id, title, description, duration_minutes, questions_per_exam, passing_score, proctor_code, incident_action, max_incidents")
     .eq("id", assignment.module_id)
     .single();
   if (!module) return json({ error: "Módulo no encontrado" }, 404);
@@ -146,6 +147,12 @@ async function start(admin: any, uid: string, p: any) {
     .filter(Boolean)
     .map((q: any) => ({ id: q.id, prompt: q.prompt, options: q.options }));
 
+  // Config de seguridad SIN el código del profesor. Si la acción es 'lock' pero
+  // no hay código configurado, se degrada a 'flag' para no dejar al alumno atascado.
+  const hasCode = Boolean(module.proctor_code);
+  let action = module.incident_action || "lock";
+  if (action === "lock" && !hasCode) action = "flag";
+
   return json({
     attempt_id: attempt.id,
     status: attempt.status,
@@ -153,9 +160,34 @@ async function start(admin: any, uid: string, p: any) {
     duration_minutes: module.duration_minutes,
     closes_at: assignment.closes_at,
     module: { id: module.id, title: module.title, description: module.description, passing_score: module.passing_score },
+    security: { action, max_incidents: module.max_incidents ?? 3, has_code: hasCode },
     answers: attempt.answers ?? {},
     questions,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Reanuda un examen congelado validando el código del profesor en el servidor.
+async function resume(admin: any, uid: string, p: any) {
+  const attemptId = p.attempt_id;
+  const code = String(p.code ?? "");
+  if (!attemptId) return json({ error: "attempt_id requerido" }, 400);
+
+  const { data: attempt } = await admin.from("attempts").select("*").eq("id", attemptId).single();
+  if (!attempt) return json({ error: "Intento no encontrado" }, 404);
+  if (attempt.student_id !== uid) return json({ error: "No autorizado" }, 403);
+  if (attempt.status !== "in_progress") return json({ error: "El intento ya no está activo" }, 409);
+
+  const { data: module } = await admin
+    .from("modules").select("proctor_code").eq("id", attempt.module_id).single();
+
+  const ok = Boolean(module?.proctor_code) && code === String(module.proctor_code);
+
+  const events = Array.isArray(attempt.security_events) ? attempt.security_events : [];
+  events.push({ type: ok ? "resumed_by_proctor" : "resume_denied", at: new Date().toISOString() });
+  await admin.from("attempts").update({ security_events: events }).eq("id", attemptId);
+
+  return json({ ok });
 }
 
 // ---------------------------------------------------------------------------

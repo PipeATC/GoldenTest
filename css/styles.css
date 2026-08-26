@@ -947,7 +947,29 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
 /* ==========================================================================
    Examen en modo seguro (pantalla completa, sin barra lateral)
    ========================================================================== */
-body.exam-locked { overflow: hidden; }
+body.exam-locked { overflow: hidden; overscroll-behavior: none; }
+/* Anula gestos y menús móviles (mantener pulsado, seleccionar) durante la prueba. */
+body.exam-locked, body.exam-locked * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Los campos de respuesta sí permiten interacción normal. */
+body.exam-locked input, body.exam-locked textarea { -webkit-user-select: text; user-select: text; }
+
+.head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lock-emblem.warn { background: #fff6e0; color: #7a5900; }
+
+/* Cortina de examen congelado (esperando código del profesor). */
+.freeze-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  background: rgba(5, 8, 18, .92); backdrop-filter: blur(6px); }
+.freeze-card { width: 100%; max-width: 400px; background: #fff; border-radius: var(--r-xl); padding: 32px; text-align: center; box-shadow: var(--shadow-2); }
+.freeze-card h2 { font-family: var(--font-head); font-size: 24px; margin: 8px 0 6px; }
+.freeze-card p { color: var(--slate-gray); font-size: 15px; }
+.freeze-card form { display: grid; gap: 12px; margin-top: 18px; }
+.freeze-card input { font-family: var(--font-body); font-size: 20px; letter-spacing: .2em; text-align: center; padding: 14px; border: 1px solid var(--outline-variant); border-radius: var(--r); }
+.freeze-card input:focus { outline: none; border-color: var(--eagle-navy); box-shadow: 0 0 0 3px rgba(9,23,49,.12); }
+.freeze-err { color: var(--error); font-weight: 600; min-height: 20px; margin-top: 6px !important; }
 .exam-loading { min-height: 100vh; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 16px; text-align: center; padding: 24px; background: var(--eagle-navy); color: #fff; }
 .exam-loading h2 { font-family: var(--font-head); }
 .exam-loading .btn { margin-top: 8px; }

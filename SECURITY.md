@@ -52,44 +52,47 @@ sistemas con una sola base**:
   instalada** (Añadir a pantalla de inicio) para ocultar la interfaz de Safari.
   Esto se exigirá antes de comenzar.
 
-## Lo que YA está implementado (`js/security.js`)
+## Lo que YA está implementado
 
-Durante la prueba, mientras el intento está activo:
+Durante la prueba, mientras el intento está activo (`js/security.js` +
+`js/views/student.js`):
 
-- **Pantalla completa** obligatoria al comenzar (donde la plataforma lo permite).
-- **Detección de salida** (`visibilitychange`, `blur`, salir de pantalla
-  completa): se cuenta cada salida y, al alcanzar el máximo, se **autoentrega**.
-- **Bloqueo** de menú contextual, selección de texto y portapapeles
-  (copiar/cortar/pegar/arrastrar).
-- **Bloqueo de atajos** sensibles (PrintScreen, F12, Ctrl/Cmd+P/C/S/U…) y vaciado
-  del portapapeles ante PrintScreen.
-- **Registro de incidencias** en `attempts.security_events`, visible para el
+- ✅ **Chequeo previo del dispositivo.** Antes de comenzar, en **iOS** se exige que
+  la prueba corra como **PWA instalada** (`display-mode: standalone`); si no, se
+  bloquea el inicio con instrucciones para "Añadir a pantalla de inicio".
+- ✅ **Pantalla completa** obligatoria al comenzar (donde la plataforma lo permite).
+- ✅ **Detección de salida** (`visibilitychange`, `blur`, salir de pantalla completa).
+- ✅ **Bloqueo con código del profesor.** Ante una salida, si el módulo usa la acción
+  `lock`, el examen se **congela** con una cortina a pantalla completa; para reanudar,
+  el **profesor** ingresa su código, que se **valida en el servidor** (Edge Function
+  `exam` → `resume`) y **nunca se envía al cliente**. El cronómetro se **pausa**
+  mientras está congelado y se reanuda al continuar.
+- ✅ **Configuración por módulo.** El profesor elige la acción ante salida
+  (`flag` solo registrar · `lock` congelar con código · `submit` autoentregar tras
+  N salidas), el código y el máximo de salidas.
+- ✅ **Anulación de gestos y menús móviles.** `-webkit-touch-callout`, `user-select`
+  y `overscroll-behavior` desactivados durante la prueba (los campos de respuesta
+  siguen siendo interactivos).
+- ✅ **Guardas de navegación.** `beforeunload` (recargar/cerrar) y fijado del
+  historial (retroceder), con registro de incidencia.
+- ✅ **Bloqueo** de menú contextual, selección de texto y portapapeles
+  (copiar/cortar/pegar/arrastrar) y de **atajos** sensibles (PrintScreen, F12,
+  Ctrl/Cmd+P/C/S/U…), con vaciado del portapapeles ante PrintScreen.
+- ✅ **Registro de incidencias** en `attempts.security_events`, visible para el
   profesor en la tabla de resultados (columna "Incidencias").
 
-## Endurecimiento propuesto (siguiente iteración)
+### Cómo se valida el código del profesor (sin exponerlo)
 
-Para llevar el "mejor esfuerzo" a lo máximo que permite la web, manteniéndolo en
-una sola base multiplataforma:
+El `proctor_code` vive en la tabla `modules` y **nunca** se envía al navegador del
+alumno (la Edge Function `start` lo omite). Cuando el examen se congela, la app
+llama a `exam → resume` con el código tecleado; el servidor lo compara y responde
+solo `{ ok: true|false }`, registrando el evento (`resumed_by_proctor` o
+`resume_denied`). Así el alumno no puede leer ni deducir el código.
 
-1. **Chequeo previo del dispositivo.** Antes de comenzar, la app verifica:
-   - En iOS, que corre como **PWA instalada** (`display-mode: standalone`); si no,
-     bloquea el inicio con instrucciones para "Añadir a pantalla de inicio".
-   - Que la pantalla completa se activó (PC/Android).
-2. **Bloqueo con código del profesor (en vez de solo autoentregar).** Al detectar
-   una salida, el examen se **congela** con una cortina a pantalla completa; para
-   reanudar, el **profesor** ingresa un código. Cada evento queda registrado. Esto
-   convierte al profesor en la "llave" y evita entregas accidentales.
-3. **Reingreso forzado a pantalla completa.** Si el alumno sale de pantalla
-   completa, una cortina bloquea el examen hasta volver a activarla.
-4. **Anular gestos y menús móviles.** CSS `-webkit-touch-callout: none`,
-   `user-select: none` y `overscroll-behavior: none` para eliminar el menú de
-   mantener pulsado en iOS y el "tirar para recargar".
-5. **Guardas de navegación.** `beforeunload` y fijado del historial para detectar
-   recargas o intentos de retroceder, con registro de incidencia.
-6. **Configuración por módulo.** El profesor elige: máximo de incidencias y la
-   acción ante cada una (solo marcar / bloquear con código / autoentregar).
-7. **Monitor en vivo para el profesor** (opcional): panel que muestra las
-   incidencias de los alumnos a medida que ocurren, para intervenir en la sala.
+## Mejoras posibles (siguiente iteración)
+
+- **Monitor en vivo para el profesor**: panel que muestre las incidencias de los
+  alumnos a medida que ocurren, para intervenir en la sala en tiempo real.
 
 ## Flujo del examen supervisado (cómo se usa en la sala)
 
