@@ -80,6 +80,11 @@ Durante la prueba, mientras el intento está activo (`js/security.js` +
   Ctrl/Cmd+P/C/S/U…), con vaciado del portapapeles ante PrintScreen.
 - ✅ **Registro de incidencias** en `attempts.security_events`, visible para el
   profesor en la tabla de resultados (columna "Incidencias").
+- ✅ **Monitor en vivo para el profesor** (pestaña "Monitor en vivo" del módulo):
+  vía Supabase Realtime muestra, mientras se rinde, el estado de cada alumno
+  (rindiendo / entregada), su progreso, el conteo de incidencias y quién está
+  **en pausa** esperando el código, para intervenir en la sala. Se refresca por
+  sondeo cada 15 s como respaldo.
 
 ### Cómo se valida el código del profesor (sin exponerlo)
 
@@ -91,8 +96,8 @@ solo `{ ok: true|false }`, registrando el evento (`resumed_by_proctor` o
 
 ## Mejoras posibles (siguiente iteración)
 
-- **Monitor en vivo para el profesor**: panel que muestre las incidencias de los
-  alumnos a medida que ocurren, para intervenir en la sala en tiempo real.
+- Alertas sonoras/push al profesor cuando un alumno entra en pausa.
+- Reanudar de forma remota desde el propio monitor (sin caminar hasta el equipo).
 
 ## Flujo del examen supervisado (cómo se usa en la sala)
 

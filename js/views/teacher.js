@@ -1,7 +1,16 @@
 import { I, esc, toast, modal, $, $$, formatDur, fmtDate, windowState } from "../ui.js";
 import { render } from "../render.js";
 import { session } from "../auth.js";
+import { supabase } from "../lib/supabase.js";
 import * as api from "../api.js";
+
+// Ciclo de vida del monitor en vivo (canal Realtime + sondeo de respaldo).
+let monitorChannel = null;
+let monitorTimer = null;
+function stopMonitor() {
+  if (monitorChannel) { try { supabase.removeChannel(monitorChannel); } catch {} monitorChannel = null; }
+  if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
+}
 
 const errorBox = (e) => `<div class="empty"><h2>Ocurrió un problema</h2><p>${esc(e.message || e)}</p></div>`;
 const securityLabel = (a) => ({ lock: "Congelar (código profesor)", flag: "Solo registrar", submit: "Autoentregar" }[a] || "Congelar (código profesor)");
@@ -200,6 +209,7 @@ function readModuleForm() {
 /* ============================== Detalle de módulo ============================== */
 let moduleTab = "preguntas";
 export async function teacherModuleDetail(moduleId) {
+  stopMonitor();
   render("cursos", "Módulo", `<div class="empty">Cargando…</div>`);
   let module, questions, course, enrollments, assignments;
   try {
@@ -211,6 +221,7 @@ export async function teacherModuleDetail(moduleId) {
   const tabs = [
     { key: "preguntas", label: `Banco de preguntas (${questions.length})` },
     { key: "asignar", label: "Asignar y bloque horario" },
+    { key: "monitor", label: "Monitor en vivo" },
     { key: "resultados", label: "Resultados" },
   ];
 
@@ -240,10 +251,12 @@ export async function teacherModuleDetail(moduleId) {
     catch (e) { toast("Error: " + e.message); }
   };
   const drawTab = () => {
+    stopMonitor();  // detener el monitor al cambiar de pestaña
     $$("[data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === moduleTab));
     const body = $("#tabBody");
     if (moduleTab === "preguntas") tabQuestions(body, module, questions, () => teacherModuleDetail(moduleId));
     else if (moduleTab === "asignar") tabAssign(body, module, enrollments, assignments, () => teacherModuleDetail(moduleId));
+    else if (moduleTab === "monitor") tabMonitor(body, module);
     else tabResults(body, module);
   };
   drawTab();
@@ -443,6 +456,119 @@ async function tabResults(body, module) {
         </tbody>
       </table>
     </div>`;
+}
+
+/* ---------- Tab: monitor en vivo ---------- */
+const EV_LABELS = {
+  blur: "Cambió de app/pestaña", window_blur: "Perdió el foco", fullscreen_exit: "Salió de pantalla completa",
+  unload_attempt: "Intentó recargar/cerrar", back_blocked: "Intentó retroceder",
+  shortcut_blocked: "Atajo bloqueado", resumed_by_proctor: "Reanudado por profesor",
+  resume_denied: "Código incorrecto", exam_started: "Inició la prueba",
+};
+
+// Analiza los eventos de seguridad de un intento.
+function analyzeSec(at, action) {
+  if (!at) return { incidents: 0, awaiting: false, last: null };
+  const evs = Array.isArray(at.security_events) ? at.security_events : [];
+  const incTypes = ["blur", "window_blur", "fullscreen_exit"];
+  const incidents = evs.filter((e) => incTypes.includes(e.type)).length;
+  const resumes = evs.filter((e) => e.type === "resumed_by_proctor").length;
+  const awaiting = action === "lock" && at.status === "in_progress" && incidents > resumes;
+  return { incidents, awaiting, last: evs[evs.length - 1] || null };
+}
+
+async function tabMonitor(body, module) {
+  stopMonitor();
+  body.innerHTML = `<div class="empty small">Cargando monitor…</div>`;
+  const state = new Map();  // assignment_id -> { row, prevInc }
+
+  const load = async () => {
+    let rows;
+    try { rows = await api.moduleResults(module.id); } catch (e) { body.innerHTML = errorBox(e); return; }
+    rows.forEach((r) => {
+      const prev = state.get(r.assignment.id);
+      state.set(r.assignment.id, { row: r, prevInc: prev ? prev.prevInc : 0 });
+    });
+    renderMonitor(body, module, state);
+  };
+
+  await load();
+
+  // Suscripción en tiempo real a los cambios de intentos de este módulo.
+  try {
+    monitorChannel = supabase
+      .channel(`monitor-${module.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "attempts", filter: `module_id=eq.${module.id}` },
+        (payload) => {
+          const row = payload.new;
+          if (!row || !row.assignment_id) return;
+          const entry = state.get(row.assignment_id);
+          if (entry) { entry.row.attempt = row; renderMonitor(body, module, state); }
+          else { load(); }  // intento nuevo: recarga para traer el perfil
+        })
+      .subscribe();
+  } catch { /* si Realtime no está habilitado, queda el sondeo */ }
+
+  // Respaldo por sondeo (por si Realtime no está habilitado en la tabla).
+  monitorTimer = setInterval(load, 15000);
+
+  // Detener el monitor al navegar fuera del módulo.
+  const onHash = () => { stopMonitor(); window.removeEventListener("hashchange", onHash); };
+  window.addEventListener("hashchange", onHash);
+}
+
+function renderMonitor(body, module, state) {
+  const entries = [...state.values()];
+  const rindiendo = entries.filter((e) => e.row.attempt?.status === "in_progress").length;
+  const entregadas = entries.filter((e) => e.row.attempt?.status === "submitted").length;
+  const alertas = entries.filter((e) => analyzeSec(e.row.attempt, module.incident_action).awaiting).length;
+
+  body.innerHTML = `
+    <div class="monitor-head">
+      <div class="mon-stat"><span>${entries.length}</span>asignados</div>
+      <div class="mon-stat live"><span>${rindiendo}</span>rindiendo</div>
+      <div class="mon-stat ${alertas ? "alert" : ""}"><span>${alertas}</span>en pausa / alerta</div>
+      <div class="mon-stat"><span>${entregadas}</span>entregadas</div>
+      <div class="mon-live">${I.shield} En vivo</div>
+    </div>
+    ${alertas ? `<div class="note warn">${I.info} Hay <b>${alertas}</b> alumno(s) en pausa esperando tu código para reanudar.</div>` : ""}
+    <div class="table-wrap">
+      <table class="data-table monitor-table">
+        <thead><tr><th>Alumno</th><th>Estado</th><th>Progreso</th><th>Incidencias</th><th>Última actividad</th></tr></thead>
+        <tbody>${entries.map((e) => monitorRow(e, module)).join("")}</tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:12px">Se actualiza en tiempo real. Si no ves cambios, habilita Realtime para la tabla <code>attempts</code> (ver SETUP.md); igual se refresca cada 15 s.</p>`;
+}
+
+function monitorRow(e, module) {
+  const p = e.row.assignment.profiles || {};
+  const at = e.row.attempt;
+  const a = analyzeSec(at, module.incident_action);
+  const flash = at && a.incidents > e.prevInc;
+  e.prevInc = a.incidents;
+
+  let status, cls;
+  if (!at) { status = "No iniciada"; cls = "closed"; }
+  else if (at.status === "submitted") { status = `Entregada (${at.score}%)`; cls = "open"; }
+  else if (a.awaiting) { status = "⏸ En pausa"; cls = "paused"; }
+  else { status = "● Rindiendo"; cls = "live"; }
+
+  const answered = at ? Object.keys(at.answers || {}).length : 0;
+  const total = at?.total || module.questions_per_exam;
+  const progress = at ? `${answered}/${total}` : "—";
+  const lastLabel = a.last ? (EV_LABELS[a.last.type] || a.last.type) : "—";
+  const lastWhen = a.last ? fmtDate(a.last.at) : "";
+
+  return `
+    <tr class="${flash ? "row-flash" : ""} ${a.awaiting ? "row-alert" : ""}">
+      <td>${esc(p.full_name || p.email || "—")}</td>
+      <td><span class="status-pill ${cls}">${status}</span></td>
+      <td>${progress}</td>
+      <td>${at ? (a.incidents ? `<span class="warn-count">${a.incidents}</span>` : "0") : "—"}</td>
+      <td>${lastLabel}${lastWhen ? `<span class="sub">${lastWhen}</span>` : ""}</td>
+    </tr>`;
 }
 
 /* ============================== Resultados (global) ============================== */

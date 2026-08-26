@@ -12,3 +12,10 @@
 alter table public.modules add column if not exists proctor_code text;
 alter table public.modules add column if not exists incident_action text not null default 'lock';
 alter table public.modules add column if not exists max_incidents int not null default 3;
+
+-- Habilita Realtime en `attempts` para el monitor en vivo del profesor.
+-- (RLS sigue aplicando: el profesor solo recibe los intentos de sus módulos.)
+do $$ begin
+  alter publication supabase_realtime add table public.attempts;
+exception when others then null;
+end $$;

@@ -970,6 +970,24 @@ body.exam-locked input, body.exam-locked textarea { -webkit-user-select: text; u
 .freeze-card input { font-family: var(--font-body); font-size: 20px; letter-spacing: .2em; text-align: center; padding: 14px; border: 1px solid var(--outline-variant); border-radius: var(--r); }
 .freeze-card input:focus { outline: none; border-color: var(--eagle-navy); box-shadow: 0 0 0 3px rgba(9,23,49,.12); }
 .freeze-err { color: var(--error); font-weight: 600; min-height: 20px; margin-top: 6px !important; }
+
+/* ---- Monitor en vivo ---- */
+.monitor-head { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 16px; }
+.mon-stat { display: flex; flex-direction: column; padding: 12px 18px; border: 1px solid var(--outline-variant); border-radius: var(--r-md); background: var(--surface-container-lowest); font-family: var(--font-ui); font-size: 12px; color: var(--slate-gray); text-transform: uppercase; letter-spacing: .04em; }
+.mon-stat span { font-family: var(--font-head); font-size: 26px; color: var(--on-surface); letter-spacing: 0; text-transform: none; }
+.mon-stat.live span { color: var(--eagle-navy); }
+.mon-stat.alert { border-color: #f2c1c1; background: var(--error-container); }
+.mon-stat.alert span { color: var(--on-error-container); }
+.mon-live { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-weight: 700; font-size: 13px; color: var(--success); }
+.mon-live svg { width: 18px; height: 18px; }
+.mon-live::before { content: ""; width: 9px; height: 9px; border-radius: 999px; background: var(--success); animation: pulse 1.4s infinite; }
+
+.status-pill.live { background: #e6ecfa; color: var(--eagle-navy); }
+.status-pill.paused { background: var(--error-container); color: var(--on-error-container); }
+.data-table .sub { display: block; font-size: 12px; color: var(--slate-gray); margin-top: 2px; }
+.monitor-table tr.row-alert { background: #fff5f5; }
+.monitor-table tr.row-flash { animation: flashRow 1.6s ease-out; }
+@keyframes flashRow { 0% { background: #fff2c9; } 100% { background: transparent; } }
 .exam-loading { min-height: 100vh; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 16px; text-align: center; padding: 24px; background: var(--eagle-navy); color: #fff; }
 .exam-loading h2 { font-family: var(--font-head); }
 .exam-loading .btn { margin-top: 8px; }

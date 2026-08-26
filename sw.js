@@ -5,7 +5,7 @@
    - Stale-while-revalidate para las fuentes de Google.
    - Navegaciones offline: se sirve index.html (SPA con enrutado por hash).
 */
-const CACHE_VERSION = "ge-academy-v3";
+const CACHE_VERSION = "ge-academy-v4";
 const APP_SHELL = `${CACHE_VERSION}-shell`;
 const RUNTIME = `${CACHE_VERSION}-runtime`;
 
