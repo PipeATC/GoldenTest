@@ -95,6 +95,19 @@ export const moduleResults = async (moduleId) => {
   return assigns.map((a) => ({ assignment: a, attempt: byAssign.get(a.id) || null }));
 };
 
+/* ----------------------------- Admin: gestión de usuarios ----------------------------- */
+// Lista todos los perfiles (solo visible para admin por RLS: profiles_admin_all).
+export const listAllProfiles = () =>
+  supabase.from("profiles").select("id, email, full_name, role, created_at")
+    .order("role").order("email").then(unwrap);
+
+// Cambia el rol de un usuario vía la RPC (SECURITY DEFINER): solo un admin
+// puede, y no se puede quitar el último admin. La seguridad real la impone
+// la base de datos; esto es solo la puerta desde la UI.
+export const adminSetRole = (targetUser, newRole) =>
+  supabase.rpc("admin_set_role", { target_user: targetUser, new_role: newRole })
+    .then(({ error }) => { if (error) throw error; });
+
 /* ----------------------------- Alumno ----------------------------- */
 // Exámenes asignados al alumno actual, con módulo, curso e intento.
 export const myAssignments = async () => {

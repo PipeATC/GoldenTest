@@ -1,11 +1,12 @@
 // Golden Eagle Academy — Bootstrap y router (módulos ES).
 // Login con Supabase, enrutado por hash con guardas de rol (profesor/alumno).
 import { supabase } from "./lib/supabase.js";
-import { initAuth, onAuthChange, session, isTeacher } from "./auth.js";
+import { initAuth, onAuthChange, session, isAdmin, canTeach } from "./auth.js";
 import { renderLogin } from "./views/login.js";
 import { settingsView } from "./views/settings.js";
 import * as S from "./views/student.js";
 import * as T from "./views/teacher.js";
+import * as A from "./views/admin.js";
 import { $ } from "./ui.js";
 
 const root = () => document.getElementById("root");
@@ -17,12 +18,21 @@ function route() {
 
   const hash = location.hash || "#/";
   const [path, arg] = hash.replace(/^#\//, "").split("/");
-  const teacher = isTeacher();
 
   // Rutas compartidas
   if (path === "ajustes") return settingsView();
 
-  if (teacher) return routeTeacher(path, arg);
+  // Admin: gestión de usuarios + TODO lo de profesor. Aterriza en el panel de
+  // administración; el resto de rutas usan las vistas de profesor.
+  if (isAdmin()) {
+    if (path === "" || path === "usuarios") return A.adminUsers();
+    return routeTeacher(path, arg);
+  }
+
+  // Profesor: sus cursos, módulos, banco y resultados.
+  if (canTeach()) return routeTeacher(path, arg);
+
+  // Alumno: rinde exámenes.
   return routeStudent(path, arg);
 }
 

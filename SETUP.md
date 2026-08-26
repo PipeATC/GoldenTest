@@ -20,6 +20,17 @@ En el panel de Supabase abre **SQL Editor** y ejecuta, en orden, el contenido de
 2. [`supabase/migrations/0002_security.sql`](supabase/migrations/0002_security.sql) —
    configuración de seguridad por módulo (código del profesor, acción ante salida)
    y habilitación de **Realtime** en `attempts` para el monitor en vivo.
+3. [`supabase/migrations/0003_rbac.sql`](supabase/migrations/0003_rbac.sql) — control
+   de acceso por **3 roles** (`admin`, `teacher`, `student`): agrega el rol `admin`,
+   los helpers `is_admin`/`teaches_student`, la función `admin_set_role` y las
+   políticas de acceso total para el administrador. También **promueve al primer
+   admin** (`felipe.loyolamejias@gmail.com`) de forma idempotente.
+
+> La migración 0003 es idempotente: puedes ejecutarla varias veces. Si la aplicas
+> con `supabase db push` (una sola transacción) y ves el aviso *"Bootstrap admin
+> diferido"*, vuelve a ejecutarla o corre la promoción manual del paso 6; esto se
+> debe a que PostgreSQL no permite usar un valor de enum recién creado en la misma
+> transacción. En el **SQL Editor** de Supabase se aplica sin problema en una pasada.
 
 > El monitor en vivo del profesor usa Supabase Realtime. La migración 0002 ya
 > agrega `attempts` a la publicación `supabase_realtime`; si lo prefieres, también
@@ -72,15 +83,44 @@ export const SUPABASE_ANON_KEY = "eyJhbGciOi...";
 La **anon key es pública** por diseño (la seguridad la aplica RLS), así que no
 hay problema en commitearla.
 
-## 6. Crear el primer profesor
+## 6. Crear el primer administrador
 
-Regístrate en la app (con Google o correo). Luego, en el **SQL Editor**:
+La app usa **3 roles**:
 
-```sql
-update public.profiles set role = 'teacher' where email = 'tu@correo.com';
-```
+| Rol       | Puede |
+|-----------|-------|
+| `admin`   | Gestiona **usuarios y sus roles** + todo lo del profesor. |
+| `teacher` | Gestiona **sus** cursos, módulos, banco de preguntas y asignaciones; ve a sus alumnos. |
+| `student` | Rinde exámenes. **Nunca** lee el banco de preguntas. |
 
-Vuelve a entrar y verás el panel de profesor.
+Los usuarios nuevos entran siempre como **`student`**. El primer administrador se
+crea de una de estas dos formas:
+
+- **Automático (recomendado):** la migración `0003_rbac.sql` ya promueve a
+  `felipe.loyolamejias@gmail.com` a `admin`. Basta con que esa persona se registre
+  (con Google o correo) y luego se aplique/re-aplique la migración.
+- **Manual (cualquier otro correo):** regístrate en la app y luego, en el
+  **SQL Editor**:
+
+  ```sql
+  update public.profiles set role = 'admin' where email = 'tu@correo.com';
+  ```
+
+Vuelve a entrar y verás el **panel de administración**.
+
+### Asignar roles desde la app
+
+Ya **no** se cambian los roles a mano por SQL. Desde el **panel de admin →
+Usuarios**, el administrador ve todos los perfiles (correo, nombre y rol) y cambia
+el rol de cualquiera con un selector. Ese cambio pasa por la función
+`admin_set_role`, que se valida en el servidor:
+
+- solo un `admin` puede cambiar roles;
+- no se puede quitar el **último** administrador del sistema.
+
+Así, para crear un profesor, promuévelo desde el panel de usuarios (Alumno →
+Profesor). El intento de un profesor o alumno de cambiar su propio rol se bloquea
+en la base de datos (trigger `guard_profile_role`).
 
 ## 7. Cargar un banco de preguntas
 

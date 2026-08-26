@@ -69,5 +69,13 @@ export async function signOut() {
   emit();
 }
 
-export const isTeacher = () => session.profile?.role === "teacher";
-export const isStudent = () => session.profile?.role === "student";
+// Helpers de rol leídos del profile. Un admin tiene acceso a TODO lo de
+// profesor además de la gestión de usuarios.
+export const role = () => session.profile?.role || "student";
+export const isAdmin = () => role() === "admin";
+export const isTeacher = () => role() === "teacher";
+export const isStudent = () => role() === "student";
+// ¿Puede ver la UI de profesor? (profesor o admin)
+export const canTeach = () => isTeacher() || isAdmin();
+
+export const roleLabel = () => ({ admin: "Administrador", teacher: "Profesor", student: "Alumno" }[role()] || "Alumno");
