@@ -1,10 +1,19 @@
 import { I, esc } from "./ui.js";
-import { session, isTeacher } from "./auth.js";
+import { session, isAdmin, canTeach, roleLabel } from "./auth.js";
 
 const LOGO = "assets/logo-eagle.png";
 
 const TEACHER_NAV = [
   { key: "inicio", label: "Panel", icon: "dashboard", route: "#/" },
+  { key: "cursos", label: "Cursos", icon: "courses", route: "#/cursos" },
+  { key: "resultados", label: "Resultados", icon: "progress", route: "#/resultados" },
+  { key: "ajustes", label: "Ajustes", icon: "settings", route: "#/ajustes" },
+];
+
+// El admin ve la gestión de usuarios como inicio + todo lo de profesor.
+const ADMIN_NAV = [
+  { key: "usuarios", label: "Usuarios", icon: "users", route: "#/usuarios" },
+  { key: "inicio", label: "Panel", icon: "dashboard", route: "#/inicio" },
   { key: "cursos", label: "Cursos", icon: "courses", route: "#/cursos" },
   { key: "resultados", label: "Resultados", icon: "progress", route: "#/resultados" },
   { key: "ajustes", label: "Ajustes", icon: "settings", route: "#/ajustes" },
@@ -17,7 +26,7 @@ const STUDENT_NAV = [
   { key: "ajustes", label: "Ajustes", icon: "settings", route: "#/ajustes" },
 ];
 
-export const navFor = () => (isTeacher() ? TEACHER_NAV : STUDENT_NAV);
+export const navFor = () => (isAdmin() ? ADMIN_NAV : canTeach() ? TEACHER_NAV : STUDENT_NAV);
 
 function avatar(p) {
   if (p?.avatar_url) return `<img class="avatar" src="${esc(p.avatar_url)}" alt="">`;
@@ -27,7 +36,7 @@ function avatar(p) {
 
 function sidebar(active) {
   const p = session.profile;
-  const roleLabel = isTeacher() ? "Profesor" : "Alumno";
+  const roleCls = isAdmin() ? "admin" : canTeach() ? "teacher" : "student";
   return `
   <aside class="sidebar" id="sidebar">
     <div class="brand">
@@ -39,7 +48,7 @@ function sidebar(active) {
     </nav>
     <div class="sidebar-spacer"></div>
     <div class="role-card">
-      <span class="role-badge ${isTeacher() ? "teacher" : "student"}">${roleLabel}</span>
+      <span class="role-badge ${roleCls}">${roleLabel()}</span>
       <div class="role-name">${esc(p?.full_name || p?.email || "")}</div>
     </div>
   </aside>`;
