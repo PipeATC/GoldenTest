@@ -68,5 +68,5 @@ python3 -m http.server 8080   # abre http://localhost:8080
 
 El bloqueo de capturas y de cambio de app es **de mejor esfuerzo**: una web no
 puede impedirlos al 100%. Las incidencias se **registran** para el profesor.
-Para un bloqueo real se puede empaquetar la PWA en una app Android (Capacitor +
-`FLAG_SECURE` + modo kiosco); ver `ARCHITECTURE.md`.
+El plan de seguridad completo —pensado para pruebas **supervisadas en sala** con
+dispositivos propios (PC/Android/iOS)— está en [`SECURITY.md`](SECURITY.md).
