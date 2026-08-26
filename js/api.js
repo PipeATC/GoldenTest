@@ -127,6 +127,11 @@ export const reviewExam = (attemptId) =>
   supabase.functions.invoke("exam", { body: { action: "review", attempt_id: attemptId } })
     .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return data; });
 
+// Reanuda un examen congelado; el código del profesor se valida en el servidor.
+export const resumeExam = (attemptId, code) =>
+  supabase.functions.invoke("exam", { body: { action: "resume", attempt_id: attemptId, code } })
+    .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return Boolean(data?.ok); });
+
 // Autoguardado de respuestas y eventos de seguridad (columnas permitidas por RLS).
 export const saveProgress = (attemptId, answers, securityEvents) =>
   supabase.from("attempts").update({ answers, security_events: securityEvents })

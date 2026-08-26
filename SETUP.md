@@ -13,8 +13,18 @@ Function que sirve las preguntas al azar y corrige en el servidor).
 
 ## 2. Crear el esquema de la base de datos
 
-En el panel de Supabase abre **SQL Editor** y ejecuta el contenido de
-[`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
+En el panel de Supabase abre **SQL Editor** y ejecuta, en orden, el contenido de:
+
+1. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tablas,
+   políticas (RLS) y triggers.
+2. [`supabase/migrations/0002_security.sql`](supabase/migrations/0002_security.sql) —
+   configuración de seguridad por módulo (código del profesor, acción ante salida)
+   y habilitación de **Realtime** en `attempts` para el monitor en vivo.
+
+> El monitor en vivo del profesor usa Supabase Realtime. La migración 0002 ya
+> agrega `attempts` a la publicación `supabase_realtime`; si lo prefieres, también
+> puedes activarlo desde el panel en **Database → Replication**. Aunque no lo
+> actives, el monitor se refresca por sondeo cada 15 segundos.
 
 Esto crea las tablas (`profiles`, `courses`, `enrollments`, `modules`,
 `questions`, `assignments`, `attempts`), las políticas de seguridad (RLS) y los
