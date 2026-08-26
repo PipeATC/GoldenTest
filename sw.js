@@ -5,7 +5,7 @@
    - Stale-while-revalidate para las fuentes de Google.
    - Navegaciones offline: se sirve index.html (SPA con enrutado por hash).
 */
-const CACHE_VERSION = "ge-academy-v1";
+const CACHE_VERSION = "ge-academy-v2";
 const APP_SHELL = `${CACHE_VERSION}-shell`;
 const RUNTIME = `${CACHE_VERSION}-runtime`;
 
@@ -13,8 +13,19 @@ const SHELL_ASSETS = [
   "./",
   "./index.html",
   "./css/styles.css",
-  "./js/data.js",
   "./js/app.js",
+  "./js/config.js",
+  "./js/auth.js",
+  "./js/api.js",
+  "./js/ui.js",
+  "./js/shell.js",
+  "./js/render.js",
+  "./js/security.js",
+  "./js/lib/supabase.js",
+  "./js/views/login.js",
+  "./js/views/student.js",
+  "./js/views/teacher.js",
+  "./js/views/settings.js",
   "./manifest.webmanifest",
   "./assets/logo-eagle.png",
   "./icons/icon-192.png",
