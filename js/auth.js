@@ -50,8 +50,12 @@ export async function initAuth() {
 }
 
 // Ingreso por nombre de usuario + clave. El correo es sintético e interno.
+// Si el usuario escribe un correo completo (con "@"), se usa tal cual; esto da
+// robustez si una cuenta se creó con otro correo.
 export async function signInWithUsername(username, password) {
-  return supabase.auth.signInWithPassword({ email: emailForUsername(username), password });
+  const id = String(username || "").trim();
+  const email = id.includes("@") ? id.toLowerCase() : emailForUsername(id);
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
 // Cambia la clave del usuario actual (Supabase Auth) y baja la bandera de
