@@ -879,6 +879,7 @@ svg:not([width]) { width: 18px; height: 18px; flex: none; }
 .u-cell .sub { font-size: 12px; color: var(--slate-gray); margin-top: 2px; }
 .role-editor { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .role-editor .role-select { min-width: 150px; }
+.tag-warn { color: var(--eagle-navy); background: var(--golden-yellow); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
 .role-name { margin-top: 8px; font-size: 13px; color: var(--on-surface-variant); font-weight: 600; word-break: break-word; }
 .avatar-initial { width: 42px; height: 42px; border-radius: 999px; display: grid; place-items: center; background: var(--eagle-navy); color: #fff; font-family: var(--font-head); font-weight: 700; border: 2px solid var(--golden-yellow); }
 .topbar-title h2 { font-family: var(--font-head); font-size: 20px; }

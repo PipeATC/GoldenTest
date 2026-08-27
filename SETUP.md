@@ -1,7 +1,7 @@
 # Puesta en marcha — Golden Eagle Academy
 
 La aplicación es una **PWA web** (sin paso de compilación) con **Supabase** como
-backend (autenticación con Google, base de datos PostgreSQL con RLS y una Edge
+backend (autenticación por usuario/clave, base de datos PostgreSQL con RLS y una Edge
 Function que sirve las preguntas al azar y corrige en el servidor).
 
 ## 1. Crear el proyecto Supabase
@@ -23,14 +23,18 @@ En el panel de Supabase abre **SQL Editor** y ejecuta, en orden, el contenido de
 3. [`supabase/migrations/0003_rbac.sql`](supabase/migrations/0003_rbac.sql) — control
    de acceso por **3 roles** (`admin`, `teacher`, `student`): agrega el rol `admin`,
    los helpers `is_admin`/`teaches_student`, la función `admin_set_role` y las
-   políticas de acceso total para el administrador. También **promueve al primer
-   admin** (`felipe.loyolamejias@gmail.com`) de forma idempotente.
+   políticas de acceso total para el administrador.
+4. [`supabase/migrations/0004_username_auth.sql`](supabase/migrations/0004_username_auth.sql) —
+   acceso por **nombre de usuario + clave** (sin correo, sin Google): columnas
+   `username` y `must_change_password` en `profiles`, matrículas por username, y
+   **crea el primer administrador** (usuario `admin`, ver paso 6) de forma
+   idempotente.
 
-> La migración 0003 es idempotente: puedes ejecutarla varias veces. Si la aplicas
-> con `supabase db push` (una sola transacción) y ves el aviso *"Bootstrap admin
-> diferido"*, vuelve a ejecutarla o corre la promoción manual del paso 6; esto se
-> debe a que PostgreSQL no permite usar un valor de enum recién creado en la misma
-> transacción. En el **SQL Editor** de Supabase se aplica sin problema en una pasada.
+> Las migraciones 0003/0004 son idempotentes: puedes ejecutarlas varias veces. Si
+> aplicas 0003 con `supabase db push` (una sola transacción) y ves el aviso
+> *"Bootstrap admin diferido"*, vuelve a ejecutarla; se debe a que PostgreSQL no
+> permite usar un valor de enum recién creado en la misma transacción. En el
+> **SQL Editor** de Supabase ambas se aplican sin problema en una pasada.
 
 > El monitor en vivo del profesor usa Supabase Realtime. La migración 0002 ya
 > agrega `attempts` a la publicación `supabase_realtime`; si lo prefieres, también
@@ -41,21 +45,23 @@ Esto crea las tablas (`profiles`, `courses`, `enrollments`, `modules`,
 `questions`, `assignments`, `attempts`), las políticas de seguridad (RLS) y los
 triggers. **El banco de preguntas nunca es legible por los alumnos.**
 
-## 3. Activar el login con Google
+## 3. Autenticación por usuario + clave
 
-1. En Supabase: **Authentication → Providers → Google → Enable**.
-2. Crea las credenciales OAuth en Google Cloud Console
-   (<https://console.cloud.google.com/apis/credentials>) y pega el *Client ID* y
-   *Client Secret* en Supabase.
-3. En **Authorized redirect URIs** de Google añade la que indica Supabase
-   (`https://xxxx.supabase.co/auth/v1/callback`).
-4. En Supabase **Authentication → URL Configuration → Redirect URLs** añade la
-   URL de tu sitio (p.ej. `https://<usuario>.github.io/GoldenTest/` y
-   `http://localhost:8080` para desarrollo).
+El acceso es por **nombre de usuario y clave**. **No se usa correo ni Google.**
+No hay auto-registro: las cuentas las crea un administrador desde el panel de
+usuarios. No necesitas configurar ningún proveedor OAuth.
 
-El login con **correo/contraseña** funciona sin configuración adicional.
+Detalle técnico: por debajo se sigue usando Supabase Auth (proveedor *email*, que
+está activo por defecto). Cada persona se guarda con un email **sintético interno**
+`<usuario>@users.goldeneagle.local` que nunca se muestra ni se pide. Recomendado en
+**Authentication → Providers → Email**:
 
-## 4. Desplegar la Edge Function
+- **Confirm email: OFF** (los emails son internos y no reciben correo; las cuentas
+  se crean ya confirmadas de todos modos).
+- **Allow new users to sign up: OFF** (defensa en profundidad: solo el admin crea
+  cuentas, vía la función `admin-users` con rol de servicio).
+
+## 4. Desplegar las Edge Functions
 
 Con la [CLI de Supabase](https://supabase.com/docs/guides/cli):
 
@@ -63,10 +69,15 @@ Con la [CLI de Supabase](https://supabase.com/docs/guides/cli):
 supabase login
 supabase link --project-ref <tu-project-ref>
 supabase functions deploy exam
+supabase functions deploy admin-users
 ```
 
-La función usa `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`,
-que Supabase inyecta automáticamente en las Edge Functions.
+- `exam`: sirve las preguntas al azar y corrige en el servidor.
+- `admin-users`: gestión de usuarios (crear cuenta, restablecer clave, cambiar
+  rol) reservada a administradores.
+
+Ambas usan `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`, que
+Supabase inyecta automáticamente en las Edge Functions.
 
 ## 5. Configurar el frontend
 
@@ -93,34 +104,42 @@ La app usa **3 roles**:
 | `teacher` | Gestiona **sus** cursos, módulos, banco de preguntas y asignaciones; ve a sus alumnos. |
 | `student` | Rinde exámenes. **Nunca** lee el banco de preguntas. |
 
-Los usuarios nuevos entran siempre como **`student`**. El primer administrador se
-crea de una de estas dos formas:
+**No hay auto-registro.** El primer administrador lo crea la migración
+`0004_username_auth.sql` de forma automática e idempotente:
 
-- **Automático (recomendado):** la migración `0003_rbac.sql` ya promueve a
-  `felipe.loyolamejias@gmail.com` a `admin`. Basta con que esa persona se registre
-  (con Google o correo) y luego se aplique/re-aplique la migración.
-- **Manual (cualquier otro correo):** regístrate en la app y luego, en el
-  **SQL Editor**:
+| | |
+|--------|--------|
+| **Usuario** | `admin` |
+| **Clave**   | `MU5Z-rYvH-wriM-WwDi` |
 
-  ```sql
-  update public.profiles set role = 'admin' where email = 'tu@correo.com';
-  ```
+> ⚠️ **Cambia esta clave en el primer ingreso.** La cuenta viene marcada para
+> cambio de clave obligatorio: al entrar por primera vez, la app te pedirá una
+> clave nueva antes de dejarte usar nada. La clave por defecto vive en la
+> migración `0004_username_auth.sql` (paso 6 del bloque de bootstrap) — cámbiala
+> ahí si quieres otra, o simplemente cámbiala desde la app.
 
-Vuelve a entrar y verás el **panel de administración**.
+Si prefieres promover a otra persona como primer admin, créala primero (paso
+siguiente) o, por única vez, desde el **SQL Editor**:
 
-### Asignar roles desde la app
+```sql
+update public.profiles set role = 'admin' where username = 'tu_usuario';
+```
 
-Ya **no** se cambian los roles a mano por SQL. Desde el **panel de admin →
-Usuarios**, el administrador ve todos los perfiles (correo, nombre y rol) y cambia
-el rol de cualquiera con un selector. Ese cambio pasa por la función
-`admin_set_role`, que se valida en el servidor:
+### Crear usuarios y asignar roles desde la app
 
-- solo un `admin` puede cambiar roles;
-- no se puede quitar el **último** administrador del sistema.
+Todo se hace desde el **panel de admin → Usuarios** (ya **no** por SQL):
 
-Así, para crear un profesor, promuévelo desde el panel de usuarios (Alumno →
-Profesor). El intento de un profesor o alumno de cambiar su propio rol se bloquea
-en la base de datos (trigger `guard_profile_role`).
+- **Nuevo usuario:** el admin define nombre, **nombre de usuario**, una **clave
+  inicial** y el **rol** (alumno / profesor / administrador). La cuenta se crea vía
+  la función `admin-users` (rol de servicio) y exige cambiar la clave en el primer
+  ingreso.
+- **Cambiar rol:** con un selector por usuario (función `admin_set_role`). Solo un
+  `admin` puede, y **no se puede quitar el último administrador**.
+- **Restablecer clave:** el admin fija una clave nueva; el usuario deberá cambiarla
+  en su próximo ingreso.
+
+El intento de un profesor o alumno de cambiar su propio rol se bloquea en la base
+de datos (trigger `guard_profile_role`).
 
 ## 7. Cargar un banco de preguntas
 
