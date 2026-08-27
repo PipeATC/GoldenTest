@@ -1,7 +1,7 @@
 # Golden Eagle Academy — Plataforma de exámenes
 
 Aplicación web (**PWA**) para **crear y rendir exámenes** con perfiles de
-**profesor** y **alumno**, autenticación (incluye **Google**), cursos, módulos,
+**administrador**, **profesor** y **alumno**, autenticación por **usuario y clave**, cursos, módulos,
 banco de preguntas y **pruebas seguras** en las que cada alumno recibe un
 subconjunto **aleatorio** de preguntas (p.ej. 50 de 200) dentro de un **bloque
 horario**.
@@ -11,8 +11,8 @@ horario**.
 ## Funcionalidades
 
 ### Profesor
-- Iniciar sesión con Google o correo.
-- Crear **cursos** y matricular alumnos por correo.
+- Iniciar sesión con **usuario y clave** (las cuentas las crea un administrador).
+- Crear **cursos** y matricular alumnos por **nombre de usuario**.
 - Crear **módulos** (pruebas): duración, nº de preguntas al azar y nota de corte.
 - Cargar un **banco de preguntas** (una a una o **importación en lote** JSON/CSV).
 - **Asignar** módulos a alumnos con un **bloque horario** (apertura/cierre).
@@ -27,7 +27,7 @@ horario**.
 ## Arquitectura (resumen)
 
 - **Frontend:** PWA sin build, módulos ES. Router por hash con guardas de rol.
-- **Backend:** [Supabase](https://supabase.com) — Auth (Google/email), PostgreSQL
+- **Backend:** [Supabase](https://supabase.com) — Auth (usuario/clave), PostgreSQL
   con **Row Level Security** y una **Edge Function** que sirve las preguntas al
   azar (sin respuestas) y corrige en el servidor.
 
@@ -41,22 +41,23 @@ css/styles.css                 Sistema de diseño + componentes
 js/
   app.js                       Bootstrap + router con guardas de rol
   config.js                    URL y anon key de Supabase
-  auth.js                      Sesión, roles, Google/email
+  auth.js                      Sesión, roles, login por usuario/clave
   api.js                       Acceso a datos (RLS)
   security.js                  Bloqueo de examen (mejor esfuerzo)
   ui.js  shell.js  render.js   UI compartida, chrome y render
   lib/supabase.js              Cliente Supabase
-  views/                       login · student · teacher · settings
+  views/                       login · changePassword · student · teacher · admin · settings
 supabase/
   migrations/0001_init.sql     Esquema + RLS + triggers
   functions/exam/index.ts      Edge Function (aleatorio + corrección)
+  functions/admin-users/       Edge Function (gestión de usuarios, solo admin)
 sw.js  manifest.webmanifest    PWA (offline / instalable)
 ```
 
 ## Puesta en marcha
 
 Sigue [`SETUP.md`](SETUP.md): crear el proyecto Supabase, ejecutar la migración,
-activar Google, desplegar la función y pegar tu URL/anon key en `js/config.js`.
+desplegar las funciones (`exam`, `admin-users`) y pegar tu URL/anon key en `js/config.js`.
 
 Desarrollo local (un service worker necesita HTTP):
 
