@@ -1,5 +1,5 @@
 import { I, esc, toast, $ } from "../ui.js";
-import { signInWithGoogle, signInWithEmail, signUpWithEmail } from "../auth.js";
+import { signInWithUsername } from "../auth.js";
 import { isConfigured } from "../config.js";
 
 const LOGO = "assets/logo-eagle.png";
@@ -7,67 +7,42 @@ const LOGO = "assets/logo-eagle.png";
 export function renderLogin(root) {
   if (!isConfigured()) return renderSetupNeeded(root);
 
-  let mode = "signin"; // signin | signup
+  root.innerHTML = `
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <img class="auth-logo" src="${LOGO}" alt="Golden Eagle Academy">
+      <h1>Golden Eagle Academy</h1>
+      <p class="auth-sub">Inicia sesión con tu usuario</p>
 
-  const draw = () => {
-    root.innerHTML = `
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <img class="auth-logo" src="${LOGO}" alt="Golden Eagle Academy">
-        <h1>Golden Eagle Academy</h1>
-        <p class="auth-sub">${mode === "signin" ? "Inicia sesión para continuar" : "Crea tu cuenta"}</p>
+      <form id="authForm" class="auth-form">
+        <label>Nombre de usuario<input type="text" id="username" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="tu.usuario"></label>
+        <label>Clave<input type="password" id="password" required autocomplete="current-password"></label>
+        <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+      </form>
 
-        <button class="btn btn-google btn-block" id="googleBtn">${I.google}<span>Continuar con Google</span></button>
-        <div class="auth-divider"><span>o con tu correo</span></div>
+      <p class="auth-note">${I.shield} El acceso lo gestiona un administrador. Si no tienes usuario o clave, solicítalos.</p>
+    </div>
+  </div>`;
 
-        <form id="authForm" class="auth-form">
-          ${mode === "signup" ? `<label>Nombre completo<input type="text" id="fullName" required autocomplete="name"></label>` : ""}
-          <label>Correo<input type="email" id="email" required autocomplete="email"></label>
-          <label>Contraseña<input type="password" id="password" required minlength="6" autocomplete="${mode === "signin" ? "current-password" : "new-password"}"></label>
-          <button class="btn btn-primary btn-block" type="submit">${mode === "signin" ? "Entrar" : "Registrarme"}</button>
-        </form>
-
-        <p class="auth-switch">
-          ${mode === "signin"
-            ? `¿No tienes cuenta? <a href="#" id="toSignup">Regístrate</a>`
-            : `¿Ya tienes cuenta? <a href="#" id="toSignin">Inicia sesión</a>`}
-        </p>
-        <p class="auth-note">${I.shield} Los nuevos usuarios entran como <b>alumnos</b>. Un administrador asigna el rol de profesor.</p>
-      </div>
-    </div>`;
-
-    $("#googleBtn").onclick = async () => {
-      try { await signInWithGoogle(); }
-      catch (e) { toast("No se pudo iniciar con Google: " + e.message); }
-    };
-
-    const swSignup = $("#toSignup"); if (swSignup) swSignup.onclick = (e) => { e.preventDefault(); mode = "signup"; draw(); };
-    const swSignin = $("#toSignin"); if (swSignin) swSignin.onclick = (e) => { e.preventDefault(); mode = "signin"; draw(); };
-
-    $("#authForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const email = $("#email").value.trim();
-      const password = $("#password").value;
-      const btn = e.target.querySelector("button[type=submit]");
-      btn.disabled = true;
-      try {
-        if (mode === "signin") {
-          const { error } = await signInWithEmail(email, password);
-          if (error) throw error;
-        } else {
-          const fullName = $("#fullName").value.trim();
-          const { error } = await signUpWithEmail(email, password, fullName);
-          if (error) throw error;
-          toast("Cuenta creada. Si se requiere, confirma tu correo y vuelve a entrar.");
-        }
-      } catch (err) {
-        toast("Error: " + (err.message || err));
-        btn.disabled = false;
-      }
-    };
+  $("#authForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const username = $("#username").value.trim();
+    const password = $("#password").value;
+    const btn = e.target.querySelector("button[type=submit]");
+    if (!username || !password) return;
+    btn.disabled = true;
+    try {
+      const { error } = await signInWithUsername(username, password);
+      if (error) throw error;
+      // El cambio de sesión re-enruta automáticamente (onAuthChange).
+    } catch (err) {
+      const msg = /invalid login credentials/i.test(err.message || "")
+        ? "Usuario o clave incorrectos."
+        : "Error: " + (err.message || err);
+      toast(msg);
+      btn.disabled = false;
+    }
   };
-
-  draw();
 }
 
 function renderSetupNeeded(root) {

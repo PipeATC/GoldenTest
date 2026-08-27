@@ -105,15 +105,15 @@ export async function teacherCourseDetail(courseId) {
       <section class="panel">
         <div class="panel-head"><h2>${I.users} Alumnos <span class="count">${enrollments.length}</span></h2></div>
         <form id="enrollForm" class="inline-form">
-          <input type="email" id="enrollEmail" placeholder="correo@alumno.com" required>
+          <input type="text" id="enrollUsername" placeholder="usuario del alumno" autocapitalize="none" spellcheck="false" required>
           <button class="btn btn-primary" type="submit">${I.plus} Añadir</button>
         </form>
         <div class="list">
           ${enrollments.length ? enrollments.map((e) => `
             <div class="list-row">
-              <div><b>${esc(e.student_email)}</b><span class="sub">${e.student_id ? "Registrado" : "Pendiente de registro"}</span></div>
+              <div><b>@${esc(e.student_username || e.student_email || "")}</b><span class="sub">${e.student_id ? "Registrado" : "Pendiente de registro"}</span></div>
               <button class="icon-btn danger" data-del-enroll="${e.id}" title="Quitar">${I.trash}</button>
-            </div>`).join("") : `<div class="empty small">Aún no hay alumnos. Añádelos por correo.</div>`}
+            </div>`).join("") : `<div class="empty small">Aún no hay alumnos. Añádelos por su nombre de usuario.</div>`}
         </div>
       </section>
 
@@ -133,9 +133,9 @@ export async function teacherCourseDetail(courseId) {
 
   $("#enrollForm").onsubmit = async (ev) => {
     ev.preventDefault();
-    const email = $("#enrollEmail").value.trim();
-    if (!email) return;
-    try { await api.addEnrollment(courseId, email); teacherCourseDetail(courseId); }
+    const username = $("#enrollUsername").value.trim();
+    if (!username) return;
+    try { await api.addEnrollment(courseId, username); teacherCourseDetail(courseId); }
     catch (e) { toast(e.message.includes("duplicate") ? "Ese alumno ya está en el curso." : "Error: " + e.message); }
   };
   $$("[data-del-enroll]").forEach((b) => b.onclick = async () => {
@@ -393,7 +393,7 @@ function tabAssign(body, module, enrollments, assignments, reload) {
           const stLabel = a ? { open: "Disponible", upcoming: "Programada", closed: "Cerrada" }[st] : "Sin asignar";
           return `
             <div class="list-row">
-              <div><b>${esc(e.student_email)}</b><span class="sub">${a ? `${stLabel}${a.closes_at ? " · cierra " + fmtDate(a.closes_at) : ""}` : "Sin asignar"}</span></div>
+              <div><b>@${esc(e.student_username || e.student_email || "")}</b><span class="sub">${a ? `${stLabel}${a.closes_at ? " · cierra " + fmtDate(a.closes_at) : ""}` : "Sin asignar"}</span></div>
               <div class="btn-row">
                 <button class="btn btn-ghost sm" data-assign="${e.student_id}">${a ? "Actualizar" : "Asignar"}</button>
                 ${a ? `<button class="icon-btn danger" data-unassign="${a.id}" title="Quitar asignación">${I.trash}</button>` : ""}
@@ -446,7 +446,7 @@ async function tabResults(body, module) {
             const sec = at ? (at.security_events || []).filter((e) => ["blur", "fullscreen_exit", "window_blur"].includes(e.type)).length : 0;
             const statusLabel = !at ? "No iniciada" : at.status === "submitted" ? "Entregada" : "En curso";
             return `<tr>
-              <td>${esc(p.full_name || p.email || "—")}</td>
+              <td>${esc(p.full_name || (p.username ? "@" + p.username : "") || "—")}</td>
               <td><span class="status-pill ${at?.status === "submitted" ? "open" : "upcoming"}">${statusLabel}</span></td>
               <td>${at?.score != null ? at.score + "%" : "—"}</td>
               <td>${at ? (sec ? `<span class="warn-count">${sec}</span>` : "0") : "—"}</td>
@@ -563,7 +563,7 @@ function monitorRow(e, module) {
 
   return `
     <tr class="${flash ? "row-flash" : ""} ${a.awaiting ? "row-alert" : ""}">
-      <td>${esc(p.full_name || p.email || "—")}</td>
+      <td>${esc(p.full_name || (p.username ? "@" + p.username : "") || "—")}</td>
       <td><span class="status-pill ${cls}">${status}</span></td>
       <td>${progress}</td>
       <td>${at ? (a.incidents ? `<span class="warn-count">${a.incidents}</span>` : "0") : "—"}</td>

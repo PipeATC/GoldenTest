@@ -61,7 +61,7 @@ function topbar(title) {
     <div class="topbar-title"><h2>${esc(title || "")}</h2></div>
     <div class="topbar-right">
       <div class="user">
-        <div class="u-name"><b>${esc(p?.full_name || "")}</b><span>${esc(p?.email || "")}</span></div>
+        <div class="u-name"><b>${esc(p?.full_name || "")}</b><span>${p?.username ? "@" + esc(p.username) : ""}</span></div>
         ${avatar(p)}
       </div>
       <button class="icon-btn" id="logoutBtn" title="Cerrar sesión" aria-label="Cerrar sesión">${I.logout}</button>

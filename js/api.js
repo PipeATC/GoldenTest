@@ -27,10 +27,10 @@ export const deleteCourse = (id) =>
 /* ----------------------------- Matrículas ----------------------------- */
 export const listEnrollments = (courseId) =>
   supabase.from("enrollments").select("*").eq("course_id", courseId)
-    .order("student_email").then(unwrap);
+    .order("student_username").then(unwrap);
 
-export const addEnrollment = (courseId, email) =>
-  supabase.from("enrollments").insert({ course_id: courseId, student_email: email.trim().toLowerCase() })
+export const addEnrollment = (courseId, username) =>
+  supabase.from("enrollments").insert({ course_id: courseId, student_username: String(username).trim().toLowerCase() })
     .select("*").single().then(unwrap);
 
 export const removeEnrollment = (id) =>
@@ -88,7 +88,7 @@ export const unassignModule = (id) =>
 // Resultados de un módulo para el profesor (con datos del alumno y el intento).
 export const moduleResults = async (moduleId) => {
   const assigns = await supabase.from("assignments")
-    .select("*, profiles!assignments_student_id_fkey(full_name,email)")
+    .select("*, profiles!assignments_student_id_fkey(full_name,username)")
     .eq("module_id", moduleId).then(unwrap);
   const attempts = await supabase.from("attempts").select("*").eq("module_id", moduleId).then(unwrap);
   const byAssign = new Map(attempts.map((a) => [a.assignment_id, a]));
@@ -98,8 +98,8 @@ export const moduleResults = async (moduleId) => {
 /* ----------------------------- Admin: gestión de usuarios ----------------------------- */
 // Lista todos los perfiles (solo visible para admin por RLS: profiles_admin_all).
 export const listAllProfiles = () =>
-  supabase.from("profiles").select("id, email, full_name, role, created_at")
-    .order("role").order("email").then(unwrap);
+  supabase.from("profiles").select("id, username, full_name, role, must_change_password, created_at")
+    .order("role").order("username").then(unwrap);
 
 // Cambia el rol de un usuario vía la RPC (SECURITY DEFINER): solo un admin
 // puede, y no se puede quitar el último admin. La seguridad real la impone
@@ -107,6 +107,17 @@ export const listAllProfiles = () =>
 export const adminSetRole = (targetUser, newRole) =>
   supabase.rpc("admin_set_role", { target_user: targetUser, new_role: newRole })
     .then(({ error }) => { if (error) throw error; });
+
+// Crea una cuenta (usuario + clave + rol) vía la Edge Function `admin-users`
+// (rol de servicio; requiere que quien llama sea admin).
+export const adminCreateUser = (username, password, fullName, role) =>
+  supabase.functions.invoke("admin-users", { body: { action: "create", username, password, full_name: fullName, role } })
+    .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return data; });
+
+// Restablece la clave de un usuario (fuerza cambio en el próximo ingreso).
+export const adminResetPassword = (userId, password) =>
+  supabase.functions.invoke("admin-users", { body: { action: "reset_password", user_id: userId, password } })
+    .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return data; });
 
 /* ----------------------------- Alumno ----------------------------- */
 // Exámenes asignados al alumno actual, con módulo, curso e intento.

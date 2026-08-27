@@ -1,8 +1,9 @@
 // Golden Eagle Academy — Bootstrap y router (módulos ES).
 // Login con Supabase, enrutado por hash con guardas de rol (profesor/alumno).
 import { supabase } from "./lib/supabase.js";
-import { initAuth, onAuthChange, session, isAdmin, canTeach } from "./auth.js";
+import { initAuth, onAuthChange, session, isAdmin, canTeach, mustChangePassword } from "./auth.js";
 import { renderLogin } from "./views/login.js";
+import { renderChangePassword } from "./views/changePassword.js";
 import { settingsView } from "./views/settings.js";
 import * as S from "./views/student.js";
 import * as T from "./views/teacher.js";
@@ -15,6 +16,10 @@ const root = () => document.getElementById("root");
 function route() {
   // Sin sesión → login (o pantalla de configuración si falta Supabase).
   if (!session.user) return renderLogin(root());
+
+  // Cambio de clave obligatorio (primer ingreso o clave restablecida): bloquea
+  // toda la app hasta que se cambie.
+  if (mustChangePassword()) return renderChangePassword(root());
 
   const hash = location.hash || "#/";
   const [path, arg] = hash.replace(/^#\//, "").split("/");
