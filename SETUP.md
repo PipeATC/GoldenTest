@@ -104,22 +104,41 @@ La app usa **3 roles**:
 | `teacher` | Gestiona **sus** cursos, módulos, banco de preguntas y asignaciones; ve a sus alumnos. |
 | `student` | Rinde exámenes. **Nunca** lee el banco de preguntas. |
 
-**No hay auto-registro.** El primer administrador lo crea la migración
-`0004_username_auth.sql` de forma automática e idempotente:
+**No hay auto-registro.** El primer administrador es:
 
 | | |
 |--------|--------|
 | **Usuario** | `admin` |
-| **Clave**   | `MU5Z-rYvH-wriM-WwDi` |
+| **Clave**   | `123456` |
 
 > ⚠️ **Cambia esta clave en el primer ingreso.** La cuenta viene marcada para
 > cambio de clave obligatorio: al entrar por primera vez, la app te pedirá una
-> clave nueva antes de dejarte usar nada. La clave por defecto vive en la
-> migración `0004_username_auth.sql` (paso 6 del bloque de bootstrap) — cámbiala
-> ahí si quieres otra, o simplemente cámbiala desde la app.
+> clave nueva (mínimo 8 caracteres) antes de dejarte usar nada.
 
-Si prefieres promover a otra persona como primer admin, créala primero (paso
-siguiente) o, por única vez, desde el **SQL Editor**:
+Créalo por **cualquiera** de estas vías:
+
+1. **Confiable — botón en la pantalla de login (recomendado).**
+   Con las Edge Functions desplegadas (paso 4), abre la app y pulsa
+   **“Primer arranque: crear administrador”**. Crea/repara la cuenta `admin`
+   con clave `123456` usando la API oficial de Supabase. Se auto-deshabilita en
+   cuanto existe un admin.
+
+2. **Confiable — por API** (equivalente al botón), sustituyendo tu ref y anon key:
+
+   ```bash
+   curl -s -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/admin-users" \
+     -H "Authorization: Bearer <ANON_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{"action":"bootstrap","password":"123456"}'
+   ```
+
+3. **Best-effort — automático en la migración `0004`.** El seed SQL intenta crear
+   `admin/123456` al aplicar la migración. Como el esquema interno de Supabase
+   Auth varía entre versiones, **puede no habilitar el login**; si al entrar
+   falla, usa la vía 1 o 2 (que sí son confiables).
+
+Si prefieres promover a otra persona como primer admin, créala (vía panel) y
+luego, por única vez, desde el **SQL Editor**:
 
 ```sql
 update public.profiles set role = 'admin' where username = 'tu_usuario';

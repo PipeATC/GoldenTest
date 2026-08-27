@@ -104,7 +104,13 @@ grant execute on function public.complete_password_change() to authenticated;
 --
 --    >>> CLAVE POR DEFECTO — CÁMBIALA EN EL PRIMER INGRESO <<<
 --        usuario: admin
---        clave:   MU5Z-rYvH-wriM-WwDi
+--        clave:   123456
+--
+--    Este seed por SQL es BEST-EFFORT: el esquema interno de Supabase Auth
+--    (auth.users / auth.identities) varía entre versiones y el INSERT directo
+--    podría no habilitar el login. Si al entrar con admin/123456 falla, usa el
+--    método CONFIABLE documentado en SETUP.md (acción `bootstrap` de la Edge
+--    Function `admin-users`, que usa la API oficial de Supabase).
 --
 --    Requiere la extensión pgcrypto (crypt/gen_salt), disponible en Supabase.
 -- ---------------------------------------------------------------------------
@@ -113,7 +119,7 @@ create extension if not exists pgcrypto;
 do $$
 declare
   admin_email text := 'admin@users.goldeneagle.local';
-  admin_pass  text := 'MU5Z-rYvH-wriM-WwDi';
+  admin_pass  text := '123456';
   uid uuid;
 begin
   -- ¿Ya existe la cuenta admin? (idempotente)
