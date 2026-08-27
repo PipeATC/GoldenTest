@@ -119,6 +119,12 @@ export const adminResetPassword = (userId, password) =>
   supabase.functions.invoke("admin-users", { body: { action: "reset_password", user_id: userId, password } })
     .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return data; });
 
+// Primer arranque: crea/repara el administrador inicial (usuario `admin`).
+// Solo funciona mientras no exista ningún admin. No requiere sesión.
+export const bootstrapAdmin = (password = "123456") =>
+  supabase.functions.invoke("admin-users", { body: { action: "bootstrap", password } })
+    .then(({ data, error }) => { if (error) throw error; if (data?.error) throw new Error(data.error); return data; });
+
 /* ----------------------------- Alumno ----------------------------- */
 // Exámenes asignados al alumno actual, con módulo, curso e intento.
 export const myAssignments = async () => {

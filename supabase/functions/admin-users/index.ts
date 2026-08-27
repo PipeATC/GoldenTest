@@ -44,27 +44,35 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  // Cliente con rol de servicio para las operaciones privilegiadas.
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+  let payload: any;
+  try { payload = await req.json(); } catch { return json({ error: "JSON inválido" }, 400); }
+  const action = payload?.action;
+
+  // "bootstrap": crea/repara el PRIMER admin. NO requiere autenticación porque
+  // aún no existe ningún admin; se auto-deshabilita en cuanto hay uno. Método
+  // confiable (usa la API oficial de Auth, no el esquema interno).
+  if (action === "bootstrap") {
+    try { return await bootstrap(admin, payload); }
+    catch (e) { console.error(e); return json({ error: "Error interno", detail: String(e) }, 500); }
+  }
+
+  // Resto de acciones: requieren un admin autenticado.
   const authHeader = req.headers.get("Authorization") ?? "";
   const jwt = authHeader.replace("Bearer ", "");
   if (!jwt) return json({ error: "No autenticado" }, 401);
 
-  // Identifica al usuario que llama con su JWT.
   const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
   const { data: userData, error: userErr } = await asUser.auth.getUser(jwt);
   if (userErr || !userData?.user) return json({ error: "Sesión inválida" }, 401);
   const callerId = userData.user.id;
 
-  // Cliente con rol de servicio para las operaciones privilegiadas.
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-
   // Verifica que quien llama sea admin (defensa real, no solo en el cliente).
   const { data: isAdmin, error: adminErr } = await admin.rpc("is_admin", { uid: callerId });
   if (adminErr) return json({ error: "No se pudo verificar el rol", detail: String(adminErr.message) }, 500);
   if (!isAdmin) return json({ error: "Solo un administrador puede gestionar usuarios." }, 403);
-
-  let payload: any;
-  try { payload = await req.json(); } catch { return json({ error: "JSON inválido" }, 400); }
-  const action = payload?.action;
 
   try {
     if (action === "create") return await createUser(admin, payload);
@@ -77,6 +85,45 @@ Deno.serve(async (req) => {
     return json({ error: "Error interno", detail: String(e) }, 500);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Crea (o repara) la cuenta del primer administrador: usuario `admin`.
+// Solo funciona mientras NO exista ningún admin (instalador de primer arranque).
+async function bootstrap(admin: any, p: any) {
+  const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin");
+  if ((count ?? 0) > 0) {
+    return json({ error: "Ya existe un administrador; el arranque está deshabilitado." }, 403);
+  }
+
+  const username = "admin";
+  const email = emailFor(username);
+  const password = String(p.password ?? "123456") || "123456";
+  const meta = { username, full_name: "Administrador" };
+
+  // ¿La cuenta de Auth ya existe (posible seed parcial)? Repárala; si no, créala.
+  let uid: string | null = null;
+  try {
+    const { data: list } = await admin.auth.admin.listUsers();
+    const found = list?.users?.find((u: any) => u.email === email);
+    if (found) uid = found.id;
+  } catch { /* si listUsers no está disponible, se intenta crear */ }
+
+  if (uid) {
+    const { error } = await admin.auth.admin.updateUserById(uid, { password, email_confirm: true, user_metadata: meta });
+    if (error) return json({ error: "No se pudo reparar el admin.", detail: error.message }, 400);
+  } else {
+    const { data: created, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: meta });
+    if (error) return json({ error: "No se pudo crear el admin.", detail: error.message }, 400);
+    uid = created.user.id;
+  }
+
+  await admin.from("profiles").upsert(
+    { id: uid, email, username, full_name: "Administrador", role: "admin", must_change_password: true },
+    { onConflict: "id" },
+  );
+
+  return json({ ok: true, username, note: "Ingresa con admin y la clave indicada; deberás cambiarla al entrar." });
+}
 
 // ---------------------------------------------------------------------------
 async function createUser(admin: any, p: any) {

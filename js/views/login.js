@@ -1,5 +1,6 @@
 import { I, esc, toast, $ } from "../ui.js";
 import { signInWithUsername } from "../auth.js";
+import { bootstrapAdmin } from "../api.js";
 import { isConfigured } from "../config.js";
 
 const LOGO = "assets/logo-eagle.png";
@@ -21,8 +22,24 @@ export function renderLogin(root) {
       </form>
 
       <p class="auth-note">${I.shield} El acceso lo gestiona un administrador. Si no tienes usuario o clave, solicítalos.</p>
+      <p class="auth-switch"><a href="#" id="bootstrapLink">Primer arranque: crear administrador</a></p>
     </div>
   </div>`;
+
+  $("#bootstrapLink").onclick = async (e) => {
+    e.preventDefault();
+    const link = e.currentTarget; link.style.pointerEvents = "none";
+    try {
+      await bootstrapAdmin("123456");
+      $("#username").value = "admin";
+      toast("Administrador creado. Entra con usuario admin y clave 123456 (deberás cambiarla).");
+    } catch (err) {
+      const msg = /ya existe un administrador/i.test(err.message || "")
+        ? "Ya existe un administrador; usa tu usuario y clave."
+        : "No se pudo crear el administrador: " + (err.message || err);
+      toast(msg);
+    } finally { link.style.pointerEvents = ""; }
+  };
 
   $("#authForm").onsubmit = async (e) => {
     e.preventDefault();
